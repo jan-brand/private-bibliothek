@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Qualität und Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      APP_NAME: MiniBib
+      APP_ENV: testing
+      APP_DEBUG: "true"
+      APP_URL: http://127.0.0.1
+      APP_LOCALE: de
+      APP_FALLBACK_LOCALE: de
+      APP_FAKER_LOCALE: de_DE
+      APP_TIMEZONE: Europe/Berlin
+
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_DATABASE: minibib_test
+      DB_USERNAME: minibib
+      DB_PASSWORD: minibib_ci
+
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      LOG_CHANNEL: stderr
+
+      COMPOSER_NO_INTERACTION: "1"
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: PHP einrichten
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: curl, dom, fileinfo, intl, mbstring, openssl, pdo_pgsql, pgsql, xml, xmlwriter, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: PostgreSQL installieren
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql postgresql-contrib
+          sudo systemctl start postgresql
+          pg_isready --host=127.0.0.1 --port=5432
+
+      - name: PostgreSQL-Testdatenbank anlegen
+        shell: bash
+        run: |
+          sudo -u postgres psql --set ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE minibib WITH LOGIN PASSWORD 'minibib_ci';
+          CREATE DATABASE minibib_test OWNER minibib;
+          SQL
+
+      - name: Laravel-Umgebung vorbereiten
+        shell: bash
+        run: cp .env.example .env
+
+      - name: Composer-Abhängigkeiten installieren
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: npm-Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Anwendungsschlüssel erzeugen
+        run: php artisan key:generate --force
+
+      - name: Konfiguration zurücksetzen
+        run: php artisan optimize:clear
+
+      - name: Testdatenbank migrieren
+        run: php artisan migrate:fresh --force
+
+      - name: Qualitätsprüfung ausführen
+        run: composer check
