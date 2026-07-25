@@ -1,0 +1,84 @@
+[1mdiff --git a/app/Models/User.php b/app/Models/User.php[m
+[1mindex f6ba1d2..26cadbd 100644[m
+[1m--- a/app/Models/User.php[m
+[1m+++ b/app/Models/User.php[m
+[36m@@ -2,31 +2,71 @@[m
+ [m
+ namespace App\Models;[m
+ [m
+[31m-// use Illuminate\Contracts\Auth\MustVerifyEmail;[m
+ use Database\Factories\UserFactory;[m
+[31m-use Illuminate\Database\Eloquent\Attributes\Fillable;[m
+[31m-use Illuminate\Database\Eloquent\Attributes\Hidden;[m
+ use Illuminate\Database\Eloquent\Factories\HasFactory;[m
+[32m+[m[32muse Illuminate\Database\Eloquent\Relations\BelongsToMany;[m
+[32m+[m[32muse Illuminate\Database\Eloquent\Relations\HasMany;[m
+[32m+[m[32muse Illuminate\Database\Eloquent\Relations\HasOne;[m
+ use Illuminate\Foundation\Auth\User as Authenticatable;[m
+ use Illuminate\Notifications\Notifiable;[m
+ [m
+[31m-#[Fillable(['name', 'email', 'password'])][m
+[31m-#[Hidden(['password', 'remember_token'])][m
+ class User extends Authenticatable[m
+ {[m
+     /** @use HasFactory<UserFactory> */[m
+     use HasFactory, Notifiable;[m
+ [m
+     /**[m
+[31m-     * Get the attributes that should be cast.[m
+[31m-     *[m
+[31m-     * @return array<string, string>[m
+[32m+[m[32m     * @var list<string>[m
+      */[m
+[32m+[m[32m    protected $fillable = [[m
+[32m+[m[32m        'name',[m
+[32m+[m[32m        'email',[m
+[32m+[m[32m        'email_verified_at',[m
+[32m+[m[32m        'password',[m
+[32m+[m[32m        'is_admin',[m
+[32m+[m[32m        'is_active',[m
+[32m+[m[32m        'last_login_at',[m
+[32m+[m[32m    ];[m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * @var list<string>[m
+[32m+[m[32m     */[m
+[32m+[m[32m    protected $hidden = [[m
+[32m+[m[32m        'password',[m
+[32m+[m[32m        'remember_token',[m
+[32m+[m[32m    ];[m
+[32m+[m
+     protected function casts(): array[m
+     {[m
+         return [[m
+             'email_verified_at' => 'datetime',[m
+             'password' => 'hashed',[m
+[32m+[m[32m            'is_admin' => 'boolean',[m
+[32m+[m[32m            'is_active' => 'boolean',[m
+[32m+[m[32m            'last_login_at' => 'datetime',[m
+         ];[m
+     }[m
+[32m+[m
+[32m+[m[32m    public function personalLibrary(): HasOne[m
+[32m+[m[32m    {[m
+[32m+[m[32m        return $this->hasOne(Library::class, 'owner_user_id')[m
+[32m+[m[32m            ->where('type', Library::TYPE_PRIVATE);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function libraryMemberships(): HasMany[m
+[32m+[m[32m    {[m
+[32m+[m[32m        return $this->hasMany(LibraryMembership::class);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function libraries(): BelongsToMany[m
+[32m+[m[32m    {[m
+[32m+[m[32m        return $this->belongsToMany(Library::class, 'library_memberships')[m
+[32m+[m[32m            ->withPivot('role')[m
+[32m+[m[32m            ->withTimestamps();[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public function isAdministrator(): bool[m
+[32m+[m[32m    {[m
+[32m+[m[32m        return (bool) $this->is_admin;[m
+[32m+[m[32m    }[m
+ }[m
