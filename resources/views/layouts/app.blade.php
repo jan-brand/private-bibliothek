@@ -18,18 +18,32 @@
 
 <body class="min-h-screen bg-stone-50 text-stone-950">
     <header class="border-b border-stone-200 bg-white">
-        <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <a href="{{ route('home') }}" class="text-xl font-semibold tracking-tight">
                 MiniBib
             </a>
 
-            <nav class="flex items-center gap-3 text-sm">
+            <nav class="flex flex-wrap items-center gap-2 text-sm">
                 @auth
                     <a
                         href="{{ route('dashboard') }}"
                         class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
                     >
                         Dashboard
+                    </a>
+
+                    <a
+                        href="{{ route('media.index') }}"
+                        class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
+                    >
+                        Medien
+                    </a>
+
+                    <a
+                        href="{{ route('locations.index') }}"
+                        class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
+                    >
+                        Standorte
                     </a>
 
                     <span class="hidden text-stone-500 sm:inline">
