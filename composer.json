@@ -77,10 +77,10 @@
         "check": [
             "Composer\\Config::disableProcessTimeout",
             "composer validate --strict",
+            "npm run build",
             "@format:check",
             "@analyse",
-            "@php artisan test",
-            "npm run build"
+            "@php artisan test"
         ]
     },
     "extra": {
