@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::view('/', 'home')->name('home');
+
+Route::get('/health/ready', [HealthController::class, 'ready'])
+    ->name('health.ready');
