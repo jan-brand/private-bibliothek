@@ -2,18 +2,18 @@
     <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
         <p class="text-sm font-medium uppercase tracking-wide text-stone-500">{{ $library->name }}</p>
         <h1 class="mt-2 text-3xl font-semibold tracking-tight">Standorte</h1>
-        <p class="mt-3 text-stone-600">
-            Hierarchie: Wohnung → Raum → Regal → Regalbrett.
-        </p>
+        <p class="mt-3 text-stone-600">Hierarchie: Wohnung → Raum → Regal → Regalbrett.</p>
     </section>
 
     <form wire:submit="save" class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 class="text-xl font-semibold">Standort anlegen</h2>
+        <h2 class="text-xl font-semibold">
+            {{ $editingId === null ? 'Standort anlegen' : 'Standort bearbeiten' }}
+        </h2>
 
         <div class="mt-5 grid gap-5 sm:grid-cols-2">
             <label class="block">
                 <span class="text-sm font-medium">Ebene</span>
-                <select wire:model.live="type" class="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2">
+                <select wire:model="type" @disabled($editingId !== null) class="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2 disabled:bg-stone-100">
                     @foreach ($types as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
@@ -47,9 +47,19 @@
             </label>
         </div>
 
-        <button type="submit" class="mt-6 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">
-            Standort speichern
-        </button>
+        <div class="mt-6 flex gap-3">
+            <button type="submit" class="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white">
+                {{ $editingId === null ? 'Standort speichern' : 'Änderungen speichern' }}
+            </button>
+
+            @if ($editingId !== null)
+                <button type="button" wire:click="cancelEdit" class="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium">
+                    Abbrechen
+                </button>
+            @endif
+        </div>
+
+        @error('delete') <p class="mt-3 text-sm text-red-700">{{ $message }}</p> @enderror
     </form>
 
     <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
@@ -58,16 +68,24 @@
         <div class="mt-5 space-y-3">
             @forelse ($locations as $location)
                 <article wire:key="location-{{ $location->id }}" class="rounded-xl border border-stone-200 bg-stone-50 p-4">
-                    <div class="flex flex-col justify-between gap-2 sm:flex-row">
+                    <div class="flex flex-col justify-between gap-3 sm:flex-row">
                         <div>
                             <p class="text-xs font-medium uppercase tracking-wide text-stone-500">{{ $location->typeLabel() }}</p>
                             <p class="mt-1 font-medium">{{ $location->breadcrumb() }}</p>
+                            <p class="mt-1 text-sm text-stone-500">
+                                {{ $location->copies_count }} Exemplare ·
+                                {{ $location->children_count }} Unterstandorte
+                            </p>
                         </div>
 
-                        <p class="text-sm text-stone-500">
-                            {{ $location->copies_count }}
-                            {{ $location->copies_count === 1 ? 'Exemplar' : 'Exemplare' }}
-                        </p>
+                        <div class="flex items-start gap-2">
+                            <button type="button" wire:click="edit({{ $location->id }})" class="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium">
+                                Bearbeiten
+                            </button>
+                            <button type="button" wire:click="delete({{ $location->id }})" wire:confirm="Standort wirklich löschen?" class="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-800">
+                                Löschen
+                            </button>
+                        </div>
                     </div>
                 </article>
             @empty

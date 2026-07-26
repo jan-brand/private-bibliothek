@@ -1,5 +1,11 @@
 <div class="space-y-6">
     <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+        <div class="mb-5 flex justify-end">
+            <a href="{{ route('media.edit', $media) }}" class="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100">
+                Medium bearbeiten
+            </a>
+        </div>
+
         <div class="flex flex-col gap-6 sm:flex-row">
             @if ($media->cover_url)
                 <img src="{{ $media->cover_url }}" alt="" class="h-48 w-32 rounded-lg object-cover shadow-sm">
@@ -45,7 +51,9 @@
 
                     @foreach ($media->identifiers as $identifier)
                         <div>
-                            <dt class="text-xs uppercase tracking-wide text-stone-500">{{ $identifier->label ?: strtoupper($identifier->scheme) }}</dt>
+                            <dt class="text-xs uppercase tracking-wide text-stone-500">
+                                {{ $identifier->label ?: strtoupper($identifier->scheme) }}
+                            </dt>
                             <dd class="mt-1 font-mono text-sm">{{ $identifier->value }}</dd>
                         </div>
                     @endforeach
@@ -74,14 +82,18 @@
                             </p>
                         </div>
 
-                        <div class="text-sm text-stone-600">
-                            {{ $copy->location?->breadcrumb() ?: 'Kein Standort' }}
+                        <div class="flex items-start gap-3">
+                            <span class="text-sm text-stone-600">
+                                {{ $copy->location?->breadcrumb() ?: 'Kein Standort' }}
+                            </span>
+                            <a href="{{ route('copies.edit', $copy) }}" class="rounded-lg border border-stone-300 px-3 py-1 text-sm font-medium">
+                                Bearbeiten
+                            </a>
                         </div>
                     </div>
 
                     <p class="mt-3 text-sm text-stone-600">
-                        Eigentum:
-                        {{ $copy->owners->pluck('name')->join(', ') }}
+                        Eigentum: {{ $copy->owners->pluck('name')->join(', ') }}
                     </p>
                 </article>
             @empty

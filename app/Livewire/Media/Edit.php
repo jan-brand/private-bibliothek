@@ -2,11 +2,11 @@
 
 namespace App\Livewire\Media;
 
+use App\Models\Library;
 use App\Models\Media;
 use App\Models\MediaIdentifier;
 use App\Models\User;
 use App\Support\MediaDuplicateFinder;
-use App\Support\ResolvesCurrentLibrary;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
-class Create extends Component
+class Edit extends Component
 {
-    use ResolvesCurrentLibrary;
+    public Media $media;
 
     public string $type = Media::TYPE_BOOK;
 
@@ -36,7 +36,7 @@ class Create extends Component
 
     public string $edition = '';
 
-    public string $languageCode = 'de';
+    public string $languageCode = '';
 
     public string $description = '';
 
@@ -52,15 +52,45 @@ class Create extends Component
 
     public bool $duplicateConfirmed = false;
 
-    public function mount(): void
+    public function mount(Media $media): void
     {
-        Gate::authorize('create', [Media::class, $this->currentLibrary()]);
+        Gate::authorize('update', $media);
+
+        $media->load('identifiers');
+
+        $this->media = $media;
+        $this->type = $media->type;
+        $this->title = $media->title;
+        $this->subtitle = $media->subtitle ?? '';
+        $this->sortTitle = $media->sort_title ?? '';
+        $this->creators = $media->creators ?? '';
+        $this->publisher = $media->publisher ?? '';
+        $this->publicationPlace = $media->publication_place ?? '';
+        $this->publicationYear = $media->publication_year !== null
+            ? (string) $media->publication_year
+            : '';
+        $this->edition = $media->edition ?? '';
+        $this->languageCode = $media->language_code ?? '';
+        $this->description = $media->description ?? '';
+        $this->coverUrl = $media->cover_url ?? '';
+        $this->isbn = (string) (
+            $media->identifiers()
+                ->where('scheme', MediaIdentifier::SCHEME_ISBN)
+                ->value('value') ?? ''
+        );
+        $this->issn = (string) (
+            $media->identifiers()
+                ->where('scheme', MediaIdentifier::SCHEME_ISSN)
+                ->value('value') ?? ''
+        );
     }
 
     public function save(): void
     {
-        $library = $this->currentLibrary();
-        Gate::authorize('create', [Media::class, $library]);
+        Gate::authorize('update', $this->media);
+
+        $library = $this->media->library;
+        abort_unless($library instanceof Library, 404);
 
         $validated = $this->validatedData();
 
@@ -73,6 +103,7 @@ class Create extends Component
                     MediaIdentifier::SCHEME_ISBN => $validated['isbn'],
                     MediaIdentifier::SCHEME_ISSN => $validated['issn'],
                 ],
+                $this->media,
             );
 
             if ($duplicate !== null) {
@@ -86,9 +117,8 @@ class Create extends Component
         $user = Auth::user();
         abort_unless($user instanceof User, 403);
 
-        $media = DB::transaction(function () use ($library, $user, $validated): Media {
-            $media = Media::query()->create([
-                'library_id' => $library->getKey(),
+        DB::transaction(function () use ($user, $validated): void {
+            $this->media->update([
                 'type' => $validated['type'],
                 'title' => trim($validated['title']),
                 'subtitle' => $this->nullableString($validated['subtitle']),
@@ -101,29 +131,16 @@ class Create extends Component
                 'language_code' => $this->nullableString($validated['languageCode']),
                 'description' => $this->nullableString($validated['description']),
                 'cover_url' => $this->nullableString($validated['coverUrl']),
-                'created_by_user_id' => $user->getKey(),
                 'updated_by_user_id' => $user->getKey(),
             ]);
 
-            $this->createIdentifier(
-                $media,
-                MediaIdentifier::SCHEME_ISBN,
-                $validated['isbn'],
-                'ISBN',
-            );
-            $this->createIdentifier(
-                $media,
-                MediaIdentifier::SCHEME_ISSN,
-                $validated['issn'],
-                'ISSN',
-            );
-
-            return $media;
+            $this->syncIdentifier(MediaIdentifier::SCHEME_ISBN, $validated['isbn'], 'ISBN');
+            $this->syncIdentifier(MediaIdentifier::SCHEME_ISSN, $validated['issn'], 'ISSN');
         });
 
-        session()->flash('status', 'Medium wurde angelegt.');
+        session()->flash('status', 'Medium wurde aktualisiert.');
 
-        $this->redirectRoute('media.show', ['media' => $media->getKey()]);
+        $this->redirectRoute('media.show', ['media' => $this->media->getKey()]);
     }
 
     public function confirmDuplicateAndSave(): void
@@ -139,10 +156,31 @@ class Create extends Component
         $this->duplicateConfirmed = false;
     }
 
+    public function delete(): void
+    {
+        Gate::authorize('delete', $this->media);
+
+        if ($this->media->copies()->exists()) {
+            $this->addError(
+                'delete',
+                'Das Medium kann erst gelöscht werden, wenn alle Exemplare gelöscht wurden.',
+            );
+
+            return;
+        }
+
+        $this->media->delete();
+
+        session()->flash('status', 'Medium wurde gelöscht.');
+
+        $this->redirectRoute('media.index');
+    }
+
     public function render(): View
     {
-        return view('livewire.media.create', [
-            'library' => $this->currentLibrary(),
+        Gate::authorize('update', $this->media);
+
+        return view('livewire.media.edit', [
             'types' => Media::types(),
         ]);
     }
@@ -182,24 +220,23 @@ class Create extends Component
         return $value === '' ? null : $value;
     }
 
-    private function createIdentifier(
-        Media $media,
-        string $scheme,
-        mixed $value,
-        string $label,
-    ): void {
+    private function syncIdentifier(string $scheme, mixed $value, string $label): void
+    {
         $value = trim((string) $value);
 
         if ($value === '') {
+            $this->media->identifiers()->where('scheme', $scheme)->delete();
+
             return;
         }
 
-        MediaIdentifier::query()->create([
-            'media_id' => $media->getKey(),
-            'scheme' => $scheme,
-            'value' => $value,
-            'normalized_value' => MediaIdentifier::normalize($value),
-            'label' => $label,
-        ]);
+        $this->media->identifiers()->updateOrCreate(
+            ['scheme' => $scheme],
+            [
+                'value' => $value,
+                'normalized_value' => MediaIdentifier::normalize($value),
+                'label' => $label,
+            ],
+        );
     }
 }
