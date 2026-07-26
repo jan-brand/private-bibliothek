@@ -19,7 +19,7 @@
 
             <label class="block">
                 <span class="text-sm font-medium">ISBN, ISSN oder ZDB-ID</span>
-                <input wire:model="identifier" type="text" class="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2">
+                <input wire:model="identifier" wire:blur="formatIdentifier" type="text" class="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2">
                 @error('identifier') <span class="mt-1 block text-sm text-red-700">{{ $message }}</span> @enderror
             </label>
 
@@ -81,7 +81,11 @@
                 @foreach ($result['identifiers'] as $scheme => $value)
                     <div>
                         <dt class="text-xs uppercase tracking-wide text-stone-500">{{ strtoupper($scheme) }}</dt>
-                        <dd class="mt-1 font-mono text-sm">{{ $value }}</dd>
+                        <dd class="mt-1 font-mono text-sm">
+                            {{ $scheme === 'isbn'
+                                ? \App\Support\IsbnDisplayFormatter::format((string) $value)
+                                : $value }}
+                        </dd>
                     </div>
                 @endforeach
             </dl>

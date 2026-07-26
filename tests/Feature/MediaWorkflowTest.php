@@ -23,7 +23,7 @@ class MediaWorkflowTest extends TestCase
         [$user, $library] = $this->context();
         $existing = $this->media($library, $user, 'Vorhandenes Buch');
 
-        MediaIdentifier::query()->create([
+        $identifier = MediaIdentifier::query()->create([
             'media_id' => $existing->getKey(),
             'scheme' => MediaIdentifier::SCHEME_ISBN,
             'value' => '978-3-16-148410-0',
@@ -31,10 +31,16 @@ class MediaWorkflowTest extends TestCase
             'label' => 'ISBN',
         ]);
 
+        $this->assertSame('9783161484100', $identifier->value);
+        $this->assertSame('978-3-16-148410-0', $identifier->displayValue());
+
         $this->actingAs($user);
         session([
             'current_library_id' => $library->getKey(),
         ]);
+
+        Livewire::test(Edit::class, ['media' => $existing])
+            ->assertSet('isbn', '978-3-16-148410-0');
 
         $component = Livewire::test(Create::class)
             ->set('title', 'Mögliche Dublette')

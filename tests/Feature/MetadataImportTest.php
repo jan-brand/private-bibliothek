@@ -56,7 +56,9 @@ class MetadataImportTest extends TestCase
 
         Livewire::test(ImportComponent::class)
             ->set('source', 'dnb')
-            ->set('identifier', '978-3-16-148410-0')
+            ->set('identifier', '9783161484100')
+            ->call('formatIdentifier')
+            ->assertSet('identifier', '978-3-16-148410-0')
             ->call('search')
             ->assertSet('result.title', 'Importiertes Buch')
             ->call('apply')
@@ -71,14 +73,17 @@ class MetadataImportTest extends TestCase
             ->assertSet('isbn', '978-3-16-148410-0');
     }
 
-    public function test_invalid_isbn_is_rejected_before_request(): void
+    public function test_isbn_with_any_check_digit_is_sent_to_dnb(): void
     {
         [$user, $library] = $this->context();
 
         $this->mock(
             DnbMetadataClient::class,
             function (MockInterface $mock): void {
-                $mock->shouldNotReceive('searchByIsbn');
+                $mock->shouldReceive('searchByIsbn')
+                    ->once()
+                    ->with('978-3-446-13139-1')
+                    ->andReturn(null);
             },
         );
 
@@ -91,8 +96,11 @@ class MetadataImportTest extends TestCase
             ->set('source', 'dnb')
             ->set('identifier', '978-3-446-13139-1')
             ->call('search')
-            ->assertHasErrors(['identifier'])
-            ->assertSet('result', null);
+            ->assertHasNoErrors()
+            ->assertSet(
+                'errorMessage',
+                'Zu dieser Kennung wurde kein Datensatz gefunden.',
+            );
     }
 
     public function test_invalid_issn_is_rejected_before_request(): void

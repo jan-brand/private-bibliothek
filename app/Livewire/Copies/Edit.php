@@ -6,6 +6,7 @@ use App\Models\Copy;
 use App\Models\Library;
 use App\Models\Location;
 use App\Models\User;
+use App\Support\IsbnDisplayFormatter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +50,7 @@ class Edit extends Component
         $this->copy = $copy;
         $this->locationId = $copy->location_id !== null ? (string) $copy->location_id : '';
         $this->inventoryCode = $copy->inventory_code ?? '';
-        $this->barcode = $copy->barcode ?? '';
+        $this->barcode = IsbnDisplayFormatter::format($copy->barcode);
         $this->condition = $copy->condition;
         $this->status = $copy->status;
         $this->acquiredAt = $copy->acquired_at !== null
@@ -122,7 +123,7 @@ class Edit extends Component
         }
 
         $inventoryCode = $this->nullableString($validated['inventoryCode']);
-        $barcode = $this->nullableString($validated['barcode']);
+        $barcode = IsbnDisplayFormatter::normalizeBarcode($validated['barcode']);
 
         if (
             $inventoryCode !== null
@@ -194,6 +195,11 @@ class Edit extends Component
         session()->flash('status', 'Exemplar wurde gelöscht.');
 
         $this->redirectRoute('media.show', ['media' => $mediaId]);
+    }
+
+    public function formatBarcode(): void
+    {
+        $this->barcode = IsbnDisplayFormatter::format($this->barcode);
     }
 
     public function render(): View

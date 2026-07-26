@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\IsbnDisplayFormatter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -26,6 +27,27 @@ class MediaIdentifier extends Model
         'normalized_value',
         'label',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $identifier): void {
+            if ($identifier->scheme !== self::SCHEME_ISBN) {
+                return;
+            }
+
+            $normalized = self::normalize((string) $identifier->value);
+
+            $identifier->value = $normalized;
+            $identifier->normalized_value = $normalized;
+        });
+    }
+
+    public function displayValue(): string
+    {
+        return $this->scheme === self::SCHEME_ISBN
+            ? IsbnDisplayFormatter::format((string) $this->value)
+            : (string) $this->value;
+    }
 
     protected function casts(): array
     {

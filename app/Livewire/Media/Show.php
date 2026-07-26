@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Media;
 
-use App\Models\Copy;
 use App\Models\Media;
+use App\Services\Covers\CoverStorageService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
@@ -19,7 +19,7 @@ class Show extends Component
         $this->media = $media;
     }
 
-    public function render(): View
+    public function render(CoverStorageService $covers): View
     {
         Gate::authorize('view', $this->media);
 
@@ -31,8 +31,7 @@ class Show extends Component
         ]);
 
         return view('livewire.media.show', [
-            'conditions' => Copy::conditions(),
-            'statuses' => Copy::statuses(),
+            'coverUrl' => $covers->url($this->media),
         ]);
     }
 }

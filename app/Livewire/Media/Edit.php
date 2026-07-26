@@ -6,6 +6,7 @@ use App\Models\Library;
 use App\Models\Media;
 use App\Models\MediaIdentifier;
 use App\Models\User;
+use App\Support\IsbnDisplayFormatter;
 use App\Support\MediaDuplicateFinder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -73,10 +74,12 @@ class Edit extends Component
         $this->languageCode = $media->language_code ?? '';
         $this->description = $media->description ?? '';
         $this->coverUrl = $media->cover_url ?? '';
-        $this->isbn = (string) (
-            $media->identifiers()
-                ->where('scheme', MediaIdentifier::SCHEME_ISBN)
-                ->value('value') ?? ''
+        $this->isbn = IsbnDisplayFormatter::format(
+            (string) (
+                $media->identifiers()
+                    ->where('scheme', MediaIdentifier::SCHEME_ISBN)
+                    ->value('value') ?? ''
+            ),
         );
         $this->issn = (string) (
             $media->identifiers()
@@ -174,6 +177,11 @@ class Edit extends Component
         session()->flash('status', 'Medium wurde gelöscht.');
 
         $this->redirectRoute('media.index');
+    }
+
+    public function formatIsbn(): void
+    {
+        $this->isbn = IsbnDisplayFormatter::format($this->isbn);
     }
 
     public function render(): View

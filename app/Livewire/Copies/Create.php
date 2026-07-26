@@ -7,6 +7,7 @@ use App\Models\Library;
 use App\Models\Location;
 use App\Models\Media;
 use App\Models\User;
+use App\Support\IsbnDisplayFormatter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -43,20 +44,18 @@ class Create extends Component
 
     public function mount(int $mediaId): void
     {
-        $media = Media::query()
-            ->with('library')
-            ->findOrFail($mediaId);
-
+        $media = Media::query()->findOrFail($mediaId);
         Gate::authorize('create', [Copy::class, $media]);
-
-        $library = $media->library;
-        abort_unless($library instanceof Library, 404);
 
         $this->mediaId = $mediaId;
 
+        $library = $this->libraryFor($media);
         $user = Auth::user();
 
-        if ($user instanceof User && $library->users()->whereKey($user->getKey())->exists()) {
+        if (
+            $user instanceof User
+            && $library->users()->whereKey($user->getKey())->exists()
+        ) {
             $this->ownerUserIds = [(int) $user->getKey()];
         } elseif ($library->owner_user_id !== null) {
             $this->ownerUserIds = [(int) $library->owner_user_id];
@@ -71,8 +70,7 @@ class Create extends Component
 
         Gate::authorize('create', [Copy::class, $media]);
 
-        $library = $media->library;
-        abort_unless($library instanceof Library, 404);
+        $library = $this->libraryFor($media);
 
         $validated = $this->validate([
             'locationId' => ['nullable', 'integer'],
@@ -92,13 +90,10 @@ class Create extends Component
             ? (int) $validated['locationId']
             : null;
 
-        if (
-            $locationId !== null
-            && ! Location::query()
-                ->whereKey($locationId)
-                ->where('library_id', $library->getKey())
-                ->exists()
-        ) {
+        if ($locationId !== null && ! Location::query()
+            ->whereKey($locationId)
+            ->where('library_id', $media->library_id)
+            ->exists()) {
             $this->addError('locationId', 'Der Standort gehört nicht zur aktiven Bibliothek.');
 
             return;
@@ -124,27 +119,21 @@ class Create extends Component
         }
 
         $inventoryCode = $this->nullableString($validated['inventoryCode']);
-        $barcode = $this->nullableString($validated['barcode']);
+        $barcode = IsbnDisplayFormatter::normalizeBarcode($validated['barcode']);
 
-        if (
-            $inventoryCode !== null
-            && Copy::query()
-                ->where('library_id', $library->getKey())
-                ->where('inventory_code', $inventoryCode)
-                ->exists()
-        ) {
+        if ($inventoryCode !== null && Copy::query()
+            ->where('library_id', $media->library_id)
+            ->where('inventory_code', $inventoryCode)
+            ->exists()) {
             $this->addError('inventoryCode', 'Diese Inventarnummer ist bereits vergeben.');
 
             return;
         }
 
-        if (
-            $barcode !== null
-            && Copy::query()
-                ->where('library_id', $library->getKey())
-                ->where('barcode', $barcode)
-                ->exists()
-        ) {
+        if ($barcode !== null && Copy::query()
+            ->where('library_id', $media->library_id)
+            ->where('barcode', $barcode)
+            ->exists()) {
             $this->addError('barcode', 'Dieser Barcode ist bereits vergeben.');
 
             return;
@@ -156,7 +145,6 @@ class Create extends Component
         DB::transaction(function () use (
             $barcode,
             $inventoryCode,
-            $library,
             $locationId,
             $media,
             $ownerIds,
@@ -164,7 +152,7 @@ class Create extends Component
             $validated,
         ): void {
             $copy = Copy::query()->create([
-                'library_id' => $library->getKey(),
+                'library_id' => $media->library_id,
                 'media_id' => $media->getKey(),
                 'location_id' => $locationId,
                 'inventory_code' => $inventoryCode,
@@ -189,6 +177,11 @@ class Create extends Component
         $this->redirectRoute('media.show', ['media' => $media->getKey()]);
     }
 
+    public function formatBarcode(): void
+    {
+        $this->barcode = IsbnDisplayFormatter::format($this->barcode);
+    }
+
     public function render(): View
     {
         $media = Media::query()
@@ -197,13 +190,12 @@ class Create extends Component
 
         Gate::authorize('create', [Copy::class, $media]);
 
-        $library = $media->library;
-        abort_unless($library instanceof Library, 404);
+        $library = $this->libraryFor($media);
 
         return view('livewire.copies.create', [
             'media' => $media,
             'locations' => Location::query()
-                ->where('library_id', $library->getKey())
+                ->where('library_id', $media->library_id)
                 ->with('parent.parent.parent')
                 ->orderBy('type')
                 ->orderBy('sort_order')
@@ -217,6 +209,15 @@ class Create extends Component
             'conditions' => Copy::conditions(),
             'statuses' => Copy::statuses(),
         ]);
+    }
+
+    private function libraryFor(Media $media): Library
+    {
+        $library = $media->library;
+
+        abort_unless($library instanceof Library, 404);
+
+        return $library;
     }
 
     private function nullableString(mixed $value): ?string

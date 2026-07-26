@@ -42,6 +42,30 @@ class MediaManagementTest extends TestCase
         $this->assertDatabaseHas('media_identifiers', [
             'media_id' => $media->getKey(),
             'scheme' => MediaIdentifier::SCHEME_ISBN,
+            'value' => '9783161484100',
+            'normalized_value' => '9783161484100',
+        ]);
+    }
+
+    public function test_unformatted_isbn_is_formatted_in_the_form_and_normalized_in_storage(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $library = $this->createPrivateLibrary($user);
+
+        $this->actingAs($user);
+        session(['current_library_id' => $library->getKey()]);
+
+        Livewire::test(Create::class)
+            ->set('title', 'ISBN ohne Bindestriche')
+            ->set('isbn', '9783161484100')
+            ->call('formatIsbn')
+            ->assertSet('isbn', '978-3-16-148410-0')
+            ->call('save')
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('media_identifiers', [
+            'scheme' => MediaIdentifier::SCHEME_ISBN,
+            'value' => '9783161484100',
             'normalized_value' => '9783161484100',
         ]);
     }

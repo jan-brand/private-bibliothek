@@ -5,6 +5,7 @@ namespace App\Livewire\Media;
 use App\Models\Media;
 use App\Models\MediaIdentifier;
 use App\Models\User;
+use App\Support\IsbnDisplayFormatter;
 use App\Support\MediaDuplicateFinder;
 use App\Support\ResolvesCurrentLibrary;
 use Illuminate\Contracts\View\View;
@@ -145,6 +146,11 @@ class Create extends Component
         $this->duplicateConfirmed = false;
     }
 
+    public function formatIsbn(): void
+    {
+        $this->isbn = IsbnDisplayFormatter::format($this->isbn);
+    }
+
     public function render(): View
     {
         return view('livewire.media.create', [
@@ -204,7 +210,7 @@ class Create extends Component
         $this->languageCode = (string) ($import['language_code'] ?? 'de');
         $this->description = (string) ($import['description'] ?? '');
         $this->isbn = is_string($identifiers['isbn'] ?? null)
-            ? $identifiers['isbn']
+            ? IsbnDisplayFormatter::format($identifiers['isbn'])
             : '';
         $this->issn = is_string($identifiers['issn'] ?? null)
             ? $identifiers['issn']
