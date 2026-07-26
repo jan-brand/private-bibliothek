@@ -55,6 +55,12 @@ class Create extends Component
     public function mount(): void
     {
         Gate::authorize('create', [Media::class, $this->currentLibrary()]);
+
+        $import = session()->pull('media_import');
+
+        if (is_array($import)) {
+            $this->fillFromImport($import);
+        }
     }
 
     public function save(): void
@@ -168,6 +174,45 @@ class Create extends Component
             'isbn' => ['nullable', 'string', 'max:32'],
             'issn' => ['nullable', 'string', 'max:32'],
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $import
+     */
+    private function fillFromImport(array $import): void
+    {
+        $identifiers = is_array($import['identifiers'] ?? null)
+            ? $import['identifiers']
+            : [];
+
+        $creators = is_array($import['creators'] ?? null)
+            ? array_filter(
+                $import['creators'],
+                static fn (mixed $creator): bool => is_string($creator),
+            )
+            : [];
+
+        $this->title = (string) ($import['title'] ?? '');
+        $this->subtitle = (string) ($import['subtitle'] ?? '');
+        $this->creators = implode('; ', $creators);
+        $this->publisher = (string) ($import['publisher'] ?? '');
+        $this->publicationPlace = (string) ($import['publication_place'] ?? '');
+        $this->publicationYear = isset($import['publication_year'])
+            ? (string) $import['publication_year']
+            : '';
+        $this->edition = (string) ($import['edition'] ?? '');
+        $this->languageCode = (string) ($import['language_code'] ?? 'de');
+        $this->description = (string) ($import['description'] ?? '');
+        $this->isbn = is_string($identifiers['isbn'] ?? null)
+            ? $identifiers['isbn']
+            : '';
+        $this->issn = is_string($identifiers['issn'] ?? null)
+            ? $identifiers['issn']
+            : '';
+
+        if ($this->issn !== '' && $this->isbn === '') {
+            $this->type = Media::TYPE_MAGAZINE_ISSUE;
+        }
     }
 
     private function publicationYearValue(mixed $value): ?int
