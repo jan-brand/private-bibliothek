@@ -7,6 +7,7 @@ use App\Models\MediaIdentifier;
 use App\Services\Metadata\DnbMetadataClient;
 use App\Services\Metadata\MetadataResult;
 use App\Services\Metadata\ZdbMetadataClient;
+use App\Support\IsbnDisplayFormatter;
 use App\Support\ResolvesCurrentLibrary;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
@@ -99,6 +100,13 @@ class Import extends Component
         $this->redirectRoute('media.create');
     }
 
+    public function formatIdentifier(): void
+    {
+        if (IsbnDisplayFormatter::isCandidate($this->identifier)) {
+            $this->identifier = IsbnDisplayFormatter::format($this->identifier);
+        }
+    }
+
     public function clearResult(): void
     {
         $this->result = null;
@@ -121,12 +129,6 @@ class Import extends Component
         $normalized = MediaIdentifier::normalize($identifier);
 
         if ($source === 'dnb') {
-            if (! $this->isValidIsbn($normalized)) {
-                $this->addError('identifier', 'Die ISBN ist ungültig.');
-
-                return null;
-            }
-
             return $dnbClient->searchByIsbn($identifier);
         }
 
@@ -162,12 +164,6 @@ class Import extends Component
         }
 
         if (in_array(strlen($normalized), [10, 13], true)) {
-            if (! $this->isValidIsbn($normalized)) {
-                $this->addError('identifier', 'Die ISBN ist ungültig.');
-
-                return null;
-            }
-
             return $dnbClient->searchByIsbn($identifier);
         }
 
@@ -177,42 +173,6 @@ class Import extends Component
         );
 
         return null;
-    }
-
-    private function isValidIsbn(string $identifier): bool
-    {
-        if (strlen($identifier) === 13 && ctype_digit($identifier)) {
-            $sum = 0;
-
-            for ($index = 0; $index < 12; $index++) {
-                $digit = (int) $identifier[$index];
-                $sum += $digit * ($index % 2 === 0 ? 1 : 3);
-            }
-
-            $expectedCheckDigit = (10 - ($sum % 10)) % 10;
-
-            return $expectedCheckDigit === (int) $identifier[12];
-        }
-
-        if (
-            strlen($identifier) === 10
-            && ctype_digit(substr($identifier, 0, 9))
-            && (ctype_digit($identifier[9]) || $identifier[9] === 'X')
-        ) {
-            $sum = 0;
-
-            for ($index = 0; $index < 10; $index++) {
-                $digit = $identifier[$index] === 'X'
-                    ? 10
-                    : (int) $identifier[$index];
-
-                $sum += $digit * (10 - $index);
-            }
-
-            return $sum % 11 === 0;
-        }
-
-        return false;
     }
 
     private function isValidIssn(string $identifier): bool

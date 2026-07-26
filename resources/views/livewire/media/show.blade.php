@@ -7,8 +7,8 @@
         </div>
 
         <div class="flex flex-col gap-6 sm:flex-row">
-            @if ($media->cover_url)
-                <img src="{{ $media->cover_url }}" alt="" class="h-48 w-32 rounded-lg object-cover shadow-sm">
+            @if ($coverUrl)
+                <img src="{{ $coverUrl }}" alt="Cover von {{ $media->title }}" class="h-48 w-32 rounded-lg object-cover shadow-sm">
             @endif
 
             <div class="min-w-0 flex-1">
@@ -54,7 +54,7 @@
                             <dt class="text-xs uppercase tracking-wide text-stone-500">
                                 {{ $identifier->label ?: strtoupper($identifier->scheme) }}
                             </dt>
-                            <dd class="mt-1 font-mono text-sm">{{ $identifier->value }}</dd>
+                            <dd class="mt-1 font-mono text-sm">{{ $identifier->displayValue() }}</dd>
                         </div>
                     @endforeach
                 </dl>
@@ -65,6 +65,8 @@
             </div>
         </div>
     </section>
+
+    <livewire:media.cover-manager :media="$media" />
 
     <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
         <h2 class="text-xl font-semibold">Exemplare</h2>
@@ -80,6 +82,9 @@
                             <p class="mt-1 text-sm text-stone-500">
                                 {{ $copy->conditionLabel() }} · {{ $copy->statusLabel() }}
                             </p>
+                            @if ($copy->barcode)
+                                <p class="mt-1 font-mono text-xs text-stone-500">{{ \App\Support\IsbnDisplayFormatter::format($copy->barcode) }}</p>
+                            @endif
                         </div>
 
                         <div class="flex items-start gap-3">

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f217f7f236b565a6c2d758b8c76ea7f6",
+    "content-hash": "22bd4fa33c208d3d29039a891369d742",
     "packages": [
         {
             "name": "brick/math",
@@ -2473,6 +2473,55 @@
                 "source": "https://github.com/nette/utils/tree/v4.1.5"
             },
             "time": "2026-07-17T23:02:45+00:00"
+        },
+        {
+            "name": "nicebooks/isbn",
+            "version": "0.8.8",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nicebooks-com/isbn.git",
+                "reference": "482785041791a4f4c50d4124bff472e0618ff424"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nicebooks-com/isbn/zipball/482785041791a4f4c50d4124bff472e0618ff424",
+                "reference": "482785041791a4f4c50d4124bff472e0618ff424",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "brick/varexporter": "~0.7.0",
+                "carthage-software/mago": "1.42.0",
+                "ext-dom": "*",
+                "php-coveralls/php-coveralls": "^2.5.2",
+                "phpunit/phpunit": "^11.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Nicebooks\\Isbn\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "ISBN tools",
+            "keywords": [
+                "ISBN",
+                "ISBN-10",
+                "ISBN-13",
+                "Nicebooks",
+                "book",
+                "books"
+            ],
+            "support": {
+                "issues": "https://github.com/nicebooks-com/isbn/issues",
+                "source": "https://github.com/nicebooks-com/isbn/tree/0.8.8"
+            },
+            "time": "2026-07-22T10:39:27+00:00"
         },
         {
             "name": "nikic/php-parser",
