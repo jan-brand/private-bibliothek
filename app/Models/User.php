@@ -65,6 +65,22 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function createdMedia(): HasMany
+    {
+        return $this->hasMany(Media::class, 'created_by_user_id');
+    }
+
+    public function ownedCopies(): BelongsToMany
+    {
+        return $this->belongsToMany(Copy::class, 'copy_owners')
+            ->withTimestamps();
+    }
+
+    public function createdLocations(): HasMany
+    {
+        return $this->hasMany(Location::class, 'created_by_user_id');
+    }
+
     public function isAdministrator(): bool
     {
         return (bool) $this->is_admin;

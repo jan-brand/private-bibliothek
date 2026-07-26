@@ -48,6 +48,21 @@ class Library extends Model
             ->withTimestamps();
     }
 
+    public function media(): HasMany
+    {
+        return $this->hasMany(Media::class);
+    }
+
+    public function copies(): HasMany
+    {
+        return $this->hasMany(Copy::class);
+    }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
+    }
+
     /**
      * @param  Builder<Library>  $query
      * @return Builder<Library>
