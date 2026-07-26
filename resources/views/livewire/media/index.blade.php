@@ -11,12 +11,20 @@
                 </p>
             </div>
 
-            <a
-                href="{{ route('media.create') }}"
-                class="rounded-lg bg-stone-900 px-4 py-2 text-center text-sm font-medium text-white hover:bg-stone-700"
-            >
-                Medium anlegen
-            </a>
+            <div class="flex flex-wrap gap-3">
+                <a
+                    href="{{ route('media.import') }}"
+                    class="rounded-lg border border-stone-300 px-4 py-2 text-center text-sm font-medium hover:bg-stone-100"
+                >
+                    Metadaten importieren
+                </a>
+                <a
+                    href="{{ route('media.create') }}"
+                    class="rounded-lg bg-stone-900 px-4 py-2 text-center text-sm font-medium text-white hover:bg-stone-700"
+                >
+                    Medium anlegen
+                </a>
+            </div>
         </div>
 
         <label class="mt-6 block">

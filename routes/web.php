@@ -17,6 +17,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
 
     Route::view('/media', 'media.index')->name('media.index');
+    Route::view('/media/import', 'media.import')->name('media.import');
     Route::view('/media/create', 'media.create')->name('media.create');
     Route::get('/media/{media}/edit', function (Media $media) {
         return view('media.edit', ['media' => $media]);
