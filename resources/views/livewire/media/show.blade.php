@@ -1,9 +1,23 @@
 <div class="space-y-6">
     <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
-        <div class="mb-5 flex justify-end">
-            <a href="{{ route('media.edit', $media) }}" class="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100">
-                Medium bearbeiten
-            </a>
+        <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div class="flex flex-wrap gap-2">
+                <span class="rounded-full px-3 py-1 text-xs font-medium {{ $media->isPrivate() ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900' }}">
+                    {{ $media->isPrivate() ? 'Privates Medium' : 'Gemeinsames Medium' }}
+                </span>
+
+                @if ($media->isPrivate())
+                    <span class="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
+                        Nur für {{ $media->owner?->name ?? 'den Eigentümer' }} und Administratoren
+                    </span>
+                @endif
+            </div>
+
+            @can('update', $media)
+                <a href="{{ route('media.edit', $media) }}" class="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100">
+                    Medium bearbeiten
+                </a>
+            @endcan
         </div>
 
         <div class="flex flex-col gap-6 sm:flex-row">
@@ -15,6 +29,7 @@
                 <p class="text-sm font-medium uppercase tracking-wide text-stone-500">
                     {{ $media->typeLabel() }} · {{ $media->library->name }}
                 </p>
+
                 <h1 class="mt-2 text-3xl font-semibold tracking-tight">{{ $media->title }}</h1>
 
                 @if ($media->subtitle)
@@ -26,6 +41,11 @@
                 @endif
 
                 <dl class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                        <dt class="text-xs uppercase tracking-wide text-stone-500">Katalog-Eigentümer</dt>
+                        <dd class="mt-1">{{ $media->owner?->name ?? 'Unbekannt' }}</dd>
+                    </div>
+
                     @if ($media->publisher)
                         <div>
                             <dt class="text-xs uppercase tracking-wide text-stone-500">Verlag</dt>
@@ -54,7 +74,11 @@
                             <dt class="text-xs uppercase tracking-wide text-stone-500">
                                 {{ $identifier->label ?: strtoupper($identifier->scheme) }}
                             </dt>
-                            <dd class="mt-1 font-mono text-sm">{{ $identifier->displayValue() }}</dd>
+                            <dd class="mt-1 font-mono text-sm">
+                                {{ $identifier->scheme === 'isbn'
+                                    ? \App\Support\IsbnDisplayFormatter::format($identifier->normalized_value)
+                                    : $identifier->value }}
+                            </dd>
                         </div>
                     @endforeach
                 </dl>
@@ -66,7 +90,11 @@
         </div>
     </section>
 
-    <livewire:media.cover-manager :media="$media" />
+    <livewire:media.reading-status :media="$media" />
+
+    @can('update', $media)
+        <livewire:media.cover-manager :media="$media" />
+    @endcan
 
     <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
         <h2 class="text-xl font-semibold">Exemplare</h2>
@@ -83,7 +111,9 @@
                                 {{ $copy->conditionLabel() }} · {{ $copy->statusLabel() }}
                             </p>
                             @if ($copy->barcode)
-                                <p class="mt-1 font-mono text-xs text-stone-500">{{ \App\Support\IsbnDisplayFormatter::format($copy->barcode) }}</p>
+                                <p class="mt-1 font-mono text-xs text-stone-500">
+                                    {{ \App\Support\IsbnDisplayFormatter::format($copy->barcode) }}
+                                </p>
                             @endif
                         </div>
 
@@ -91,9 +121,12 @@
                             <span class="text-sm text-stone-600">
                                 {{ $copy->location?->breadcrumb() ?: 'Kein Standort' }}
                             </span>
-                            <a href="{{ route('copies.edit', $copy) }}" class="rounded-lg border border-stone-300 px-3 py-1 text-sm font-medium">
-                                Bearbeiten
-                            </a>
+
+                            @can('update', $copy)
+                                <a href="{{ route('copies.edit', $copy) }}" class="rounded-lg border border-stone-300 px-3 py-1 text-sm font-medium">
+                                    Bearbeiten
+                                </a>
+                            @endcan
                         </div>
                     </div>
 
@@ -107,5 +140,7 @@
         </div>
     </section>
 
-    <livewire:copies.create :media-id="$media->id" />
+    @can('update', $media)
+        <livewire:copies.create :media-id="$media->id" />
+    @endcan
 </div>

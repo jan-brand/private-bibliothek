@@ -7,7 +7,6 @@ use App\Models\Copy;
 use App\Models\Library;
 use App\Models\LibraryMembership;
 use App\Models\Location;
-use App\Models\Media;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -24,9 +23,6 @@ class LocationWorkflowTest extends TestCase
         $location = $this->location($library, $user, 'Alt');
 
         $this->actingAs($user);
-        session([
-            'current_library_id' => $library->getKey(),
-        ]);
 
         Livewire::test(Index::class)
             ->call('edit', $location->getKey())
@@ -53,14 +49,7 @@ class LocationWorkflowTest extends TestCase
         [$user, $library] = $this->context();
 
         $location = $this->location($library, $user, 'Belegt');
-
-        $media = Media::query()->create([
-            'library_id' => $library->getKey(),
-            'type' => Media::TYPE_BOOK,
-            'title' => 'Testmedium',
-            'created_by_user_id' => $user->getKey(),
-            'updated_by_user_id' => $user->getKey(),
-        ]);
+        $media = $this->createMediaFor($user);
 
         Copy::query()->create([
             'library_id' => $library->getKey(),
@@ -73,9 +62,6 @@ class LocationWorkflowTest extends TestCase
         ]);
 
         $this->actingAs($user);
-        session([
-            'current_library_id' => $library->getKey(),
-        ]);
 
         Livewire::test(Index::class)
             ->call('delete', $location->getKey())
@@ -95,24 +81,19 @@ class LocationWorkflowTest extends TestCase
             'is_active' => true,
         ]);
 
-        $library = Library::query()->create([
-            'name' => 'Private Bibliothek',
-            'slug' => 'private-'.$user->getKey(),
-            'type' => Library::TYPE_PRIVATE,
-            'owner_user_id' => $user->getKey(),
-        ]);
-
-        LibraryMembership::query()->create([
-            'library_id' => $library->getKey(),
-            'user_id' => $user->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
+        $library = $this->addLibraryMember(
+            $user,
+            LibraryMembership::ROLE_OWNER,
+        );
 
         return [$user, $library];
     }
 
-    private function location(Library $library, User $user, string $name): Location
-    {
+    private function location(
+        Library $library,
+        User $user,
+        string $name,
+    ): Location {
         return Location::query()->create([
             'library_id' => $library->getKey(),
             'parent_id' => null,

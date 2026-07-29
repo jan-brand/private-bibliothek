@@ -4,9 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Copies\Edit;
 use App\Models\Copy;
-use App\Models\Library;
 use App\Models\LibraryMembership;
-use App\Models\Media;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -22,26 +20,12 @@ class CopyWorkflowTest extends TestCase
             'is_active' => true,
         ]);
 
-        $library = Library::query()->create([
-            'name' => 'Private Bibliothek',
-            'slug' => 'private-'.$user->getKey(),
-            'type' => Library::TYPE_PRIVATE,
-            'owner_user_id' => $user->getKey(),
-        ]);
+        $library = $this->addLibraryMember(
+            $user,
+            LibraryMembership::ROLE_OWNER,
+        );
 
-        LibraryMembership::query()->create([
-            'library_id' => $library->getKey(),
-            'user_id' => $user->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
-
-        $media = Media::query()->create([
-            'library_id' => $library->getKey(),
-            'type' => Media::TYPE_BOOK,
-            'title' => 'Testmedium',
-            'created_by_user_id' => $user->getKey(),
-            'updated_by_user_id' => $user->getKey(),
-        ]);
+        $media = $this->createMediaFor($user);
 
         $copy = Copy::query()->create([
             'library_id' => $library->getKey(),

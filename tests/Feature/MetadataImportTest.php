@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Livewire\Media\Create;
 use App\Livewire\Media\Import as ImportComponent;
 use App\Models\Library;
-use App\Models\LibraryMembership;
 use App\Models\User;
 use App\Services\Metadata\DnbMetadataClient;
 use App\Services\Metadata\MetadataResult;
@@ -50,9 +49,6 @@ class MetadataImportTest extends TestCase
         );
 
         $this->actingAs($user);
-        session([
-            'current_library_id' => $library->getKey(),
-        ]);
 
         Livewire::test(ImportComponent::class)
             ->set('source', 'dnb')
@@ -71,11 +67,16 @@ class MetadataImportTest extends TestCase
             ->assertSet('publisher', 'Testverlag')
             ->assertSet('publicationYear', '2026')
             ->assertSet('isbn', '978-3-16-148410-0');
+
+        $this->assertSame(
+            $library->getKey(),
+            $this->singleLibrary()->getKey(),
+        );
     }
 
     public function test_isbn_with_any_check_digit_is_sent_to_dnb(): void
     {
-        [$user, $library] = $this->context();
+        [$user] = $this->context();
 
         $this->mock(
             DnbMetadataClient::class,
@@ -88,9 +89,6 @@ class MetadataImportTest extends TestCase
         );
 
         $this->actingAs($user);
-        session([
-            'current_library_id' => $library->getKey(),
-        ]);
 
         Livewire::test(ImportComponent::class)
             ->set('source', 'dnb')
@@ -105,12 +103,9 @@ class MetadataImportTest extends TestCase
 
     public function test_invalid_issn_is_rejected_before_request(): void
     {
-        [$user, $library] = $this->context();
+        [$user] = $this->context();
 
         $this->actingAs($user);
-        session([
-            'current_library_id' => $library->getKey(),
-        ]);
 
         Livewire::test(ImportComponent::class)
             ->set('source', 'auto')
@@ -129,18 +124,7 @@ class MetadataImportTest extends TestCase
             'is_active' => true,
         ]);
 
-        $library = Library::query()->create([
-            'name' => 'Private Bibliothek',
-            'slug' => 'private-'.$user->getKey(),
-            'type' => Library::TYPE_PRIVATE,
-            'owner_user_id' => $user->getKey(),
-        ]);
-
-        LibraryMembership::query()->create([
-            'library_id' => $library->getKey(),
-            'user_id' => $user->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
+        $library = $this->addLibraryMember($user);
 
         return [$user, $library];
     }

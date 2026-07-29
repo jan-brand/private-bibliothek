@@ -3,8 +3,6 @@
 namespace Tests\Feature;
 
 use App\Livewire\Media\Index;
-use App\Models\Library;
-use App\Models\LibraryMembership;
 use App\Models\Media;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,67 +13,67 @@ class MediaAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_only_sees_media_from_selected_accessible_library(): void
+    public function test_user_sees_shared_and_own_private_media_but_not_other_private_media(): void
     {
-        $user = User::factory()->create(['is_active' => true]);
-        $otherUser = User::factory()->create(['is_active' => true]);
+        $user = User::factory()->create([
+            'is_active' => true,
+        ]);
 
-        $ownLibrary = $this->createPrivateLibrary($user, 'Eigene Bibliothek');
-        $otherLibrary = $this->createPrivateLibrary($otherUser, 'Fremde Bibliothek');
+        $otherUser = User::factory()->create([
+            'is_active' => true,
+        ]);
 
-        $ownMedia = $this->createMedia($ownLibrary, $user, 'Eigenes Buch');
-        $otherMedia = $this->createMedia($otherLibrary, $otherUser, 'Fremdes Buch');
+        $this->addLibraryMember($user);
+        $this->addLibraryMember($otherUser);
+
+        $sharedMedia = $this->createMediaFor(
+            $otherUser,
+            'Gemeinsames Buch',
+        );
+
+        $ownPrivateMedia = $this->createMediaFor(
+            $user,
+            'Eigenes privates Buch',
+            Media::VISIBILITY_PRIVATE,
+        );
+
+        $otherPrivateMedia = $this->createMediaFor(
+            $otherUser,
+            'Fremdes privates Buch',
+            Media::VISIBILITY_PRIVATE,
+        );
 
         $this->actingAs($user);
-        session(['current_library_id' => $ownLibrary->getKey()]);
 
         Livewire::test(Index::class)
-            ->assertSee($ownMedia->title)
-            ->assertDontSee($otherMedia->title);
+            ->assertSee($sharedMedia->title)
+            ->assertSee($ownPrivateMedia->title)
+            ->assertDontSee($otherPrivateMedia->title);
 
-        $this->assertTrue($user->can('view', $ownMedia));
-        $this->assertFalse($user->can('view', $otherMedia));
+        $this->assertTrue($user->can('view', $sharedMedia));
+        $this->assertTrue($user->can('view', $ownPrivateMedia));
+        $this->assertFalse($user->can('view', $otherPrivateMedia));
     }
 
-    public function test_administrator_can_view_media_from_any_library(): void
+    public function test_administrator_can_view_private_media_of_another_user(): void
     {
         $administrator = User::factory()->create([
             'is_active' => true,
             'is_admin' => true,
         ]);
-        $owner = User::factory()->create(['is_active' => true]);
-        $library = $this->createPrivateLibrary($owner, 'Private Bibliothek');
-        $media = $this->createMedia($library, $owner, 'Administrativ sichtbar');
+
+        $owner = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $this->addLibraryMember($owner);
+
+        $media = $this->createMediaFor(
+            $owner,
+            'Administrativ sichtbar',
+            Media::VISIBILITY_PRIVATE,
+        );
 
         $this->assertTrue($administrator->can('view', $media));
-    }
-
-    private function createPrivateLibrary(User $owner, string $name): Library
-    {
-        $library = Library::query()->create([
-            'name' => $name,
-            'slug' => 'private-'.$owner->getKey(),
-            'type' => Library::TYPE_PRIVATE,
-            'owner_user_id' => $owner->getKey(),
-        ]);
-
-        LibraryMembership::query()->create([
-            'library_id' => $library->getKey(),
-            'user_id' => $owner->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
-
-        return $library;
-    }
-
-    private function createMedia(Library $library, User $user, string $title): Media
-    {
-        return Media::query()->create([
-            'library_id' => $library->getKey(),
-            'type' => Media::TYPE_BOOK,
-            'title' => $title,
-            'created_by_user_id' => $user->getKey(),
-            'updated_by_user_id' => $user->getKey(),
-        ]);
     }
 }

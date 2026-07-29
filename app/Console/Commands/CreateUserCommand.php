@@ -19,7 +19,7 @@ class CreateUserCommand extends Command
         {--admin : Benutzer als Administrator anlegen}
         {--inactive : Benutzer deaktiviert anlegen}';
 
-    protected $description = 'Legt einen MiniBib-Benutzer mit privater und gemeinsamer Bibliothek an.';
+    protected $description = 'Legt einen MiniBib-Benutzer an und fügt ihn der gemeinsamen Bibliothek hinzu.';
 
     public function handle(): int
     {
@@ -58,35 +58,26 @@ class CreateUserCommand extends Command
                 'is_active' => $isActive,
             ]);
 
-            $privateLibrary = Library::query()->create([
-                'name' => "Private Bibliothek von {$user->name}",
-                'slug' => "private-{$user->getKey()}",
-                'type' => Library::TYPE_PRIVATE,
-                'owner_user_id' => $user->getKey(),
-            ]);
-
-            LibraryMembership::query()->create([
-                'library_id' => $privateLibrary->getKey(),
-                'user_id' => $user->getKey(),
-                'role' => LibraryMembership::ROLE_OWNER,
-            ]);
-
-            $sharedLibrary = Library::query()->firstOrCreate(
+            $library = Library::query()->firstOrCreate(
                 ['slug' => 'shared'],
                 [
-                    'name' => 'Gemeinsame Bibliothek',
+                    'name' => 'MiniBib',
                     'type' => Library::TYPE_SHARED,
                     'owner_user_id' => null,
                 ],
             );
 
-            LibraryMembership::query()->create([
-                'library_id' => $sharedLibrary->getKey(),
-                'user_id' => $user->getKey(),
-                'role' => $isAdmin
-                    ? LibraryMembership::ROLE_ADMIN
-                    : LibraryMembership::ROLE_MEMBER,
-            ]);
+            LibraryMembership::query()->updateOrCreate(
+                [
+                    'library_id' => $library->getKey(),
+                    'user_id' => $user->getKey(),
+                ],
+                [
+                    'role' => $isAdmin
+                        ? LibraryMembership::ROLE_ADMIN
+                        : LibraryMembership::ROLE_MEMBER,
+                ],
+            );
 
             return $user;
         });

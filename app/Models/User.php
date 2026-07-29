@@ -6,7 +6,6 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -47,12 +46,6 @@ class User extends Authenticatable
         ];
     }
 
-    public function personalLibrary(): HasOne
-    {
-        return $this->hasOne(Library::class, 'owner_user_id')
-            ->where('type', Library::TYPE_PRIVATE);
-    }
-
     public function libraryMemberships(): HasMany
     {
         return $this->hasMany(LibraryMembership::class);
@@ -70,6 +63,11 @@ class User extends Authenticatable
         return $this->hasMany(Media::class, 'created_by_user_id');
     }
 
+    public function ownedMedia(): HasMany
+    {
+        return $this->hasMany(Media::class, 'owner_user_id');
+    }
+
     public function ownedCopies(): BelongsToMany
     {
         return $this->belongsToMany(Copy::class, 'copy_owners')
@@ -79,6 +77,16 @@ class User extends Authenticatable
     public function createdLocations(): HasMany
     {
         return $this->hasMany(Location::class, 'created_by_user_id');
+    }
+
+    public function mediaLists(): HasMany
+    {
+        return $this->hasMany(MediaList::class, 'owner_user_id');
+    }
+
+    public function mediaUserStates(): HasMany
+    {
+        return $this->hasMany(MediaUserState::class);
     }
 
     public function isAdministrator(): bool

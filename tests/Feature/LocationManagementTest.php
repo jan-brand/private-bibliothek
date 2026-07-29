@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Livewire\Locations\Index;
-use App\Models\Library;
 use App\Models\LibraryMembership;
 use App\Models\Location;
 use App\Models\User;
@@ -17,11 +16,16 @@ class LocationManagementTest extends TestCase
 
     public function test_library_owner_can_create_location_hierarchy(): void
     {
-        $user = User::factory()->create(['is_active' => true]);
-        $library = $this->createPrivateLibrary($user);
+        $user = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $library = $this->addLibraryMember(
+            $user,
+            LibraryMembership::ROLE_OWNER,
+        );
 
         $this->actingAs($user);
-        session(['current_library_id' => $library->getKey()]);
 
         Livewire::test(Index::class)
             ->set('type', Location::TYPE_APARTMENT)
@@ -51,8 +55,15 @@ class LocationManagementTest extends TestCase
 
     public function test_location_rejects_wrong_parent_level(): void
     {
-        $user = User::factory()->create(['is_active' => true]);
-        $library = $this->createPrivateLibrary($user);
+        $user = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $library = $this->addLibraryMember(
+            $user,
+            LibraryMembership::ROLE_OWNER,
+        );
+
         $apartment = Location::query()->create([
             'library_id' => $library->getKey(),
             'parent_id' => null,
@@ -63,7 +74,6 @@ class LocationManagementTest extends TestCase
         ]);
 
         $this->actingAs($user);
-        session(['current_library_id' => $library->getKey()]);
 
         Livewire::test(Index::class)
             ->set('type', Location::TYPE_SHELF)
@@ -76,23 +86,5 @@ class LocationManagementTest extends TestCase
             'type' => Location::TYPE_SHELF,
             'name' => 'Regal A',
         ]);
-    }
-
-    private function createPrivateLibrary(User $owner): Library
-    {
-        $library = Library::query()->create([
-            'name' => 'Private Bibliothek',
-            'slug' => 'private-'.$owner->getKey(),
-            'type' => Library::TYPE_PRIVATE,
-            'owner_user_id' => $owner->getKey(),
-        ]);
-
-        LibraryMembership::query()->create([
-            'library_id' => $library->getKey(),
-            'user_id' => $owner->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
-
-        return $library;
     }
 }

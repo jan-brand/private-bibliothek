@@ -4,10 +4,8 @@ namespace Tests\Feature;
 
 use App\Livewire\Copies\Create;
 use App\Models\Copy;
-use App\Models\Library;
 use App\Models\LibraryMembership;
 use App\Models\Location;
-use App\Models\Media;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -21,8 +19,15 @@ class CopyManagementTest extends TestCase
     {
         $user = User::factory()->create(['is_active' => true]);
         $secondOwner = User::factory()->create(['is_active' => true]);
-        $library = $this->createSharedLibrary($user, $secondOwner);
-        $media = $this->createMedia($library, $user);
+
+        $library = $this->addLibraryMember(
+            $user,
+            LibraryMembership::ROLE_ADMIN,
+        );
+        $this->addLibraryMember($secondOwner);
+
+        $media = $this->createMediaFor($user);
+
         $location = Location::query()->create([
             'library_id' => $library->getKey(),
             'parent_id' => null,
@@ -33,7 +38,6 @@ class CopyManagementTest extends TestCase
         ]);
 
         $this->actingAs($user);
-        session(['current_library_id' => $library->getKey()]);
 
         Livewire::test(Create::class, ['mediaId' => $media->getKey()])
             ->set('inventoryCode', 'INV-0001')
@@ -43,13 +47,17 @@ class CopyManagementTest extends TestCase
             ->call('save')
             ->assertRedirect();
 
-        $copy = Copy::query()->where('inventory_code', 'INV-0001')->firstOrFail();
+        $copy = Copy::query()
+            ->where('inventory_code', 'INV-0001')
+            ->firstOrFail();
 
         $this->assertSame($location->getKey(), $copy->location_id);
+
         $this->assertDatabaseHas('copy_owners', [
             'copy_id' => $copy->getKey(),
             'user_id' => $user->getKey(),
         ]);
+
         $this->assertDatabaseHas('copy_owners', [
             'copy_id' => $copy->getKey(),
             'user_id' => $secondOwner->getKey(),
@@ -60,11 +68,15 @@ class CopyManagementTest extends TestCase
     {
         $user = User::factory()->create(['is_active' => true]);
         $nonMember = User::factory()->create(['is_active' => true]);
-        $library = $this->createSharedLibrary($user);
-        $media = $this->createMedia($library, $user);
+
+        $this->addLibraryMember(
+            $user,
+            LibraryMembership::ROLE_ADMIN,
+        );
+
+        $media = $this->createMediaFor($user);
 
         $this->actingAs($user);
-        session(['current_library_id' => $library->getKey()]);
 
         Livewire::test(Create::class, ['mediaId' => $media->getKey()])
             ->set('ownerUserIds', [$nonMember->getKey()])
@@ -72,38 +84,5 @@ class CopyManagementTest extends TestCase
             ->assertHasErrors('ownerUserIds');
 
         $this->assertDatabaseCount('copies', 0);
-    }
-
-    private function createSharedLibrary(User ...$members): Library
-    {
-        $library = Library::query()->create([
-            'name' => 'Gemeinsame Bibliothek',
-            'slug' => 'shared',
-            'type' => Library::TYPE_SHARED,
-            'owner_user_id' => null,
-        ]);
-
-        foreach ($members as $index => $member) {
-            LibraryMembership::query()->create([
-                'library_id' => $library->getKey(),
-                'user_id' => $member->getKey(),
-                'role' => $index === 0
-                    ? LibraryMembership::ROLE_ADMIN
-                    : LibraryMembership::ROLE_MEMBER,
-            ]);
-        }
-
-        return $library;
-    }
-
-    private function createMedia(Library $library, User $user): Media
-    {
-        return Media::query()->create([
-            'library_id' => $library->getKey(),
-            'type' => Media::TYPE_BOOK,
-            'title' => 'Testmedium',
-            'created_by_user_id' => $user->getKey(),
-            'updated_by_user_id' => $user->getKey(),
-        ]);
     }
 }

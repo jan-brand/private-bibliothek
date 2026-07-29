@@ -21,7 +21,12 @@ class MediaWorkflowTest extends TestCase
     public function test_duplicate_identifier_requires_confirmation(): void
     {
         [$user, $library] = $this->context();
-        $existing = $this->media($library, $user, 'Vorhandenes Buch');
+
+        $existing = $this->media(
+            $library,
+            $user,
+            'Vorhandenes Buch',
+        );
 
         $identifier = MediaIdentifier::query()->create([
             'media_id' => $existing->getKey(),
@@ -32,12 +37,12 @@ class MediaWorkflowTest extends TestCase
         ]);
 
         $this->assertSame('9783161484100', $identifier->value);
-        $this->assertSame('978-3-16-148410-0', $identifier->displayValue());
+        $this->assertSame(
+            '978-3-16-148410-0',
+            $identifier->displayValue(),
+        );
 
         $this->actingAs($user);
-        session([
-            'current_library_id' => $library->getKey(),
-        ]);
 
         Livewire::test(Edit::class, ['media' => $existing])
             ->assertSet('isbn', '978-3-16-148410-0');
@@ -61,7 +66,12 @@ class MediaWorkflowTest extends TestCase
     public function test_media_can_be_updated_and_deleted_without_copies(): void
     {
         [$user, $library] = $this->context();
-        $media = $this->media($library, $user, 'Alter Titel');
+
+        $media = $this->media(
+            $library,
+            $user,
+            'Alter Titel',
+        );
 
         $this->actingAs($user);
 
@@ -89,7 +99,12 @@ class MediaWorkflowTest extends TestCase
     public function test_media_with_copy_cannot_be_deleted(): void
     {
         [$user, $library] = $this->context();
-        $media = $this->media($library, $user, 'Mit Exemplar');
+
+        $media = $this->media(
+            $library,
+            $user,
+            'Mit Exemplar',
+        );
 
         Copy::query()->create([
             'library_id' => $library->getKey(),
@@ -120,26 +135,23 @@ class MediaWorkflowTest extends TestCase
             'is_active' => true,
         ]);
 
-        $library = Library::query()->create([
-            'name' => 'Private Bibliothek',
-            'slug' => 'private-'.$user->getKey(),
-            'type' => Library::TYPE_PRIVATE,
-            'owner_user_id' => $user->getKey(),
-        ]);
-
-        LibraryMembership::query()->create([
-            'library_id' => $library->getKey(),
-            'user_id' => $user->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
+        $library = $this->addLibraryMember(
+            $user,
+            LibraryMembership::ROLE_OWNER,
+        );
 
         return [$user, $library];
     }
 
-    private function media(Library $library, User $user, string $title): Media
-    {
+    private function media(
+        Library $library,
+        User $user,
+        string $title,
+    ): Media {
         return Media::query()->create([
             'library_id' => $library->getKey(),
+            'owner_user_id' => $user->getKey(),
+            'visibility' => Media::VISIBILITY_SHARED,
             'type' => Media::TYPE_BOOK,
             'title' => $title,
             'created_by_user_id' => $user->getKey(),

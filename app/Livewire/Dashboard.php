@@ -2,43 +2,16 @@
 
 namespace App\Livewire;
 
-use App\Models\Library;
+use App\Models\Media;
 use App\Models\User;
+use App\Support\ResolvesCurrentLibrary;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\On;
 use Livewire\Component;
 
 class Dashboard extends Component
 {
-    public function mount(): void
-    {
-        $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
-
-        $selectedLibrary = Library::query()
-            ->accessibleTo($user)
-            ->find(session('current_library_id'));
-
-        if ($selectedLibrary === null) {
-            $selectedLibrary = Library::query()
-                ->accessibleTo($user)
-                ->orderBy('type')
-                ->orderBy('name')
-                ->first();
-        }
-
-        if ($selectedLibrary !== null) {
-            session(['current_library_id' => $selectedLibrary->getKey()]);
-        }
-    }
-
-    #[On('library-selected')]
-    public function librarySelected(int $libraryId): void
-    {
-        session(['current_library_id' => $libraryId]);
-    }
+    use ResolvesCurrentLibrary;
 
     public function render(): View
     {
@@ -46,13 +19,20 @@ class Dashboard extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $selectedLibrary = Library::query()
-            ->accessibleTo($user)
-            ->find(session('current_library_id'));
+        $library = $this->currentLibrary();
 
         return view('livewire.dashboard', [
-            'selectedLibrary' => $selectedLibrary,
+            'library' => $library,
             'user' => $user,
+            'visibleMediaCount' => Media::query()
+                ->forLibrary($library)
+                ->visibleTo($user)
+                ->count(),
+            'privateMediaCount' => Media::query()
+                ->forLibrary($library)
+                ->where('owner_user_id', $user->getKey())
+                ->where('visibility', Media::VISIBILITY_PRIVATE)
+                ->count(),
         ]);
     }
 }

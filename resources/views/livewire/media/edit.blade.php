@@ -30,6 +30,27 @@
                 @error('type') <span class="mt-1 block text-sm text-red-700">{{ $message }}</span> @enderror
             </label>
 
+            <div>
+                <span class="text-sm font-medium">Sichtbarkeit</span>
+
+                @if ($canChangeVisibility)
+                    <select wire:model="visibility" class="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2">
+                        @foreach ($visibilities as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <span class="mt-1 block text-xs text-stone-500">
+                        Private Medien sind nur für den Eigentümer und Administratoren sichtbar.
+                    </span>
+                @else
+                    <p class="mt-2 rounded-lg bg-stone-100 px-3 py-2">
+                        {{ $media->visibilityLabel() }}
+                    </p>
+                @endif
+
+                @error('visibility') <span class="mt-1 block text-sm text-red-700">{{ $message }}</span> @enderror
+            </div>
+
             <label class="block sm:col-span-2">
                 <span class="text-sm font-medium">Titel</span>
                 <input wire:model="title" type="text" class="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2">
