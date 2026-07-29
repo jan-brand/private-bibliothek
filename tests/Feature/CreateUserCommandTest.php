@@ -13,7 +13,7 @@ class CreateUserCommandTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_command_creates_user_and_library_memberships(): void
+    public function test_command_creates_user_and_single_library_membership(): void
     {
         $this->artisan('minibib:user:create', [
             'email' => 'admin@example.test',
@@ -28,26 +28,19 @@ class CreateUserCommandTest extends TestCase
 
         $this->assertTrue($user->is_admin);
         $this->assertTrue($user->is_active);
-        $this->assertTrue(Hash::check('very-secure-password', $user->password));
+        $this->assertTrue(
+            Hash::check('very-secure-password', $user->password),
+        );
 
-        $privateLibrary = Library::query()
-            ->where('owner_user_id', $user->getKey())
-            ->where('type', Library::TYPE_PRIVATE)
-            ->firstOrFail();
-
-        $sharedLibrary = Library::query()
+        $library = Library::query()
             ->where('slug', 'shared')
             ->where('type', Library::TYPE_SHARED)
             ->firstOrFail();
 
-        $this->assertDatabaseHas('library_memberships', [
-            'library_id' => $privateLibrary->getKey(),
-            'user_id' => $user->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
+        $this->assertDatabaseCount('libraries', 1);
 
         $this->assertDatabaseHas('library_memberships', [
-            'library_id' => $sharedLibrary->getKey(),
+            'library_id' => $library->getKey(),
             'user_id' => $user->getKey(),
             'role' => LibraryMembership::ROLE_ADMIN,
         ]);
@@ -67,7 +60,9 @@ class CreateUserCommandTest extends TestCase
 
         $this->assertSame(
             1,
-            User::query()->where('email', 'duplicate@example.test')->count(),
+            User::query()
+                ->where('email', 'duplicate@example.test')
+                ->count(),
         );
     }
 }

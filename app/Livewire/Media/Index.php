@@ -3,8 +3,10 @@
 namespace App\Livewire\Media;
 
 use App\Models\Media;
+use App\Models\User;
 use App\Support\ResolvesCurrentLibrary;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -23,10 +25,15 @@ class Index extends Component
     public function render(): View
     {
         $library = $this->currentLibrary();
+        $user = Auth::user();
+
+        abort_unless($user instanceof User, 403);
+
         $search = trim($this->search);
 
         $mediaItems = Media::query()
             ->forLibrary($library)
+            ->visibleTo($user)
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('title', 'ilike', "%{$search}%")

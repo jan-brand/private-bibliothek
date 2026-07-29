@@ -3,8 +3,6 @@
 namespace Tests\Feature;
 
 use App\Livewire\Media\Create;
-use App\Models\Library;
-use App\Models\LibraryMembership;
 use App\Models\Media;
 use App\Models\MediaIdentifier;
 use App\Models\User;
@@ -16,13 +14,15 @@ class MediaManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_library_owner_can_create_media_with_identifiers(): void
+    public function test_member_can_create_shared_media_with_identifiers(): void
     {
-        $user = User::factory()->create(['is_active' => true]);
-        $library = $this->createPrivateLibrary($user);
+        $user = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $library = $this->addLibraryMember($user);
 
         $this->actingAs($user);
-        session(['current_library_id' => $library->getKey()]);
 
         Livewire::test(Create::class)
             ->set('type', Media::TYPE_BOOK)
@@ -39,6 +39,9 @@ class MediaManagementTest extends TestCase
             ->where('title', 'Der Testkatalog')
             ->firstOrFail();
 
+        $this->assertSame($user->getKey(), $media->owner_user_id);
+        $this->assertSame(Media::VISIBILITY_SHARED, $media->visibility);
+
         $this->assertDatabaseHas('media_identifiers', [
             'media_id' => $media->getKey(),
             'scheme' => MediaIdentifier::SCHEME_ISBN,
@@ -49,11 +52,13 @@ class MediaManagementTest extends TestCase
 
     public function test_unformatted_isbn_is_formatted_in_the_form_and_normalized_in_storage(): void
     {
-        $user = User::factory()->create(['is_active' => true]);
-        $library = $this->createPrivateLibrary($user);
+        $user = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $this->addLibraryMember($user);
 
         $this->actingAs($user);
-        session(['current_library_id' => $library->getKey()]);
 
         Livewire::test(Create::class)
             ->set('title', 'ISBN ohne Bindestriche')
@@ -72,11 +77,13 @@ class MediaManagementTest extends TestCase
 
     public function test_title_is_required_when_creating_media(): void
     {
-        $user = User::factory()->create(['is_active' => true]);
-        $library = $this->createPrivateLibrary($user);
+        $user = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $this->addLibraryMember($user);
 
         $this->actingAs($user);
-        session(['current_library_id' => $library->getKey()]);
 
         Livewire::test(Create::class)
             ->set('title', '')
@@ -84,23 +91,5 @@ class MediaManagementTest extends TestCase
             ->assertHasErrors(['title' => 'required']);
 
         $this->assertDatabaseCount('media', 0);
-    }
-
-    private function createPrivateLibrary(User $owner): Library
-    {
-        $library = Library::query()->create([
-            'name' => 'Private Bibliothek',
-            'slug' => 'private-'.$owner->getKey(),
-            'type' => Library::TYPE_PRIVATE,
-            'owner_user_id' => $owner->getKey(),
-        ]);
-
-        LibraryMembership::query()->create([
-            'library_id' => $library->getKey(),
-            'user_id' => $owner->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
-
-        return $library;
     }
 }

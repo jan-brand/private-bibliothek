@@ -21,6 +21,8 @@ class Create extends Component
 
     public string $type = Media::TYPE_BOOK;
 
+    public string $visibility = Media::VISIBILITY_SHARED;
+
     public string $title = '';
 
     public string $subtitle = '';
@@ -55,7 +57,10 @@ class Create extends Component
 
     public function mount(): void
     {
-        Gate::authorize('create', [Media::class, $this->currentLibrary()]);
+        Gate::authorize(
+            'create',
+            [Media::class, $this->currentLibrary()],
+        );
 
         $import = session()->pull('media_import');
 
@@ -67,15 +72,25 @@ class Create extends Component
     public function save(): void
     {
         $library = $this->currentLibrary();
-        Gate::authorize('create', [Media::class, $library]);
+
+        Gate::authorize(
+            'create',
+            [Media::class, $library],
+        );
 
         $validated = $this->validatedData();
+
+        $user = Auth::user();
+        abort_unless($user instanceof User, 403);
 
         if (! $this->duplicateConfirmed) {
             $duplicate = app(MediaDuplicateFinder::class)->find(
                 $library,
+                $user,
                 $validated['title'],
-                $this->publicationYearValue($validated['publicationYear']),
+                $this->publicationYearValue(
+                    $validated['publicationYear'],
+                ),
                 [
                     MediaIdentifier::SCHEME_ISBN => $validated['isbn'],
                     MediaIdentifier::SCHEME_ISSN => $validated['issn'],
@@ -83,54 +98,88 @@ class Create extends Component
             );
 
             if ($duplicate !== null) {
-                $this->duplicateMediaId = (int) $duplicate->getKey();
-                $this->duplicateMessage = "Möglicher Dublettentreffer: {$duplicate->title}";
+                $this->duplicateMediaId =
+                    (int) $duplicate->getKey();
+                $this->duplicateMessage =
+                    "Möglicher Dublettentreffer: {$duplicate->title}";
 
                 return;
             }
         }
 
-        $user = Auth::user();
-        abort_unless($user instanceof User, 403);
+        $media = DB::transaction(
+            function () use (
+                $library,
+                $user,
+                $validated,
+            ): Media {
+                $media = Media::query()->create([
+                    'library_id' => $library->getKey(),
+                    'owner_user_id' => $user->getKey(),
+                    'visibility' => $validated['visibility'],
+                    'type' => $validated['type'],
+                    'title' => trim($validated['title']),
+                    'subtitle' => $this->nullableString(
+                        $validated['subtitle'],
+                    ),
+                    'sort_title' => $this->nullableString(
+                        $validated['sortTitle'],
+                    ),
+                    'creators' => $this->nullableString(
+                        $validated['creators'],
+                    ),
+                    'publisher' => $this->nullableString(
+                        $validated['publisher'],
+                    ),
+                    'publication_place' => $this->nullableString(
+                        $validated['publicationPlace'],
+                    ),
+                    'publication_year' => $this->publicationYearValue(
+                        $validated['publicationYear'],
+                    ),
+                    'edition' => $this->nullableString(
+                        $validated['edition'],
+                    ),
+                    'language_code' => $this->nullableString(
+                        $validated['languageCode'],
+                    ),
+                    'description' => $this->nullableString(
+                        $validated['description'],
+                    ),
+                    'cover_url' => $this->nullableString(
+                        $validated['coverUrl'],
+                    ),
+                    'created_by_user_id' => $user->getKey(),
+                    'updated_by_user_id' => $user->getKey(),
+                ]);
 
-        $media = DB::transaction(function () use ($library, $user, $validated): Media {
-            $media = Media::query()->create([
-                'library_id' => $library->getKey(),
-                'type' => $validated['type'],
-                'title' => trim($validated['title']),
-                'subtitle' => $this->nullableString($validated['subtitle']),
-                'sort_title' => $this->nullableString($validated['sortTitle']),
-                'creators' => $this->nullableString($validated['creators']),
-                'publisher' => $this->nullableString($validated['publisher']),
-                'publication_place' => $this->nullableString($validated['publicationPlace']),
-                'publication_year' => $this->publicationYearValue($validated['publicationYear']),
-                'edition' => $this->nullableString($validated['edition']),
-                'language_code' => $this->nullableString($validated['languageCode']),
-                'description' => $this->nullableString($validated['description']),
-                'cover_url' => $this->nullableString($validated['coverUrl']),
-                'created_by_user_id' => $user->getKey(),
-                'updated_by_user_id' => $user->getKey(),
-            ]);
+                $this->createIdentifier(
+                    $media,
+                    MediaIdentifier::SCHEME_ISBN,
+                    $validated['isbn'],
+                    'ISBN',
+                );
 
-            $this->createIdentifier(
-                $media,
-                MediaIdentifier::SCHEME_ISBN,
-                $validated['isbn'],
-                'ISBN',
-            );
-            $this->createIdentifier(
-                $media,
-                MediaIdentifier::SCHEME_ISSN,
-                $validated['issn'],
-                'ISSN',
-            );
+                $this->createIdentifier(
+                    $media,
+                    MediaIdentifier::SCHEME_ISSN,
+                    $validated['issn'],
+                    'ISSN',
+                );
 
-            return $media;
-        });
+                return $media;
+            },
+        );
 
-        session()->flash('status', 'Medium wurde angelegt.');
+        session()->flash(
+            'status',
+            'Medium wurde angelegt.',
+        );
 
-        $this->redirectRoute('media.show', ['media' => $media->getKey()]);
+        $this->redirectRoute(
+            'media.show',
+            ['media' => $media->getKey()],
+        );
     }
 
     public function confirmDuplicateAndSave(): void
@@ -148,7 +197,9 @@ class Create extends Component
 
     public function formatIsbn(): void
     {
-        $this->isbn = IsbnDisplayFormatter::format($this->isbn);
+        $this->isbn = IsbnDisplayFormatter::format(
+            $this->isbn,
+        );
     }
 
     public function render(): View
@@ -156,6 +207,7 @@ class Create extends Component
         return view('livewire.media.create', [
             'library' => $this->currentLibrary(),
             'types' => Media::types(),
+            'visibilities' => Media::visibilities(),
         ]);
     }
 
@@ -165,18 +217,46 @@ class Create extends Component
     private function validatedData(): array
     {
         return $this->validate([
-            'type' => ['required', Rule::in(array_keys(Media::types()))],
+            'type' => [
+                'required',
+                Rule::in(array_keys(Media::types())),
+            ],
+            'visibility' => [
+                'required',
+                Rule::in(array_keys(Media::visibilities())),
+            ],
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
             'sortTitle' => ['nullable', 'string', 'max:255'],
             'creators' => ['nullable', 'string', 'max:4000'],
             'publisher' => ['nullable', 'string', 'max:255'],
-            'publicationPlace' => ['nullable', 'string', 'max:255'],
-            'publicationYear' => ['nullable', 'integer', 'min:1000', 'max:2100'],
+            'publicationPlace' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'publicationYear' => [
+                'nullable',
+                'integer',
+                'min:1000',
+                'max:2100',
+            ],
             'edition' => ['nullable', 'string', 'max:255'],
-            'languageCode' => ['nullable', 'string', 'max:8'],
-            'description' => ['nullable', 'string', 'max:20000'],
-            'coverUrl' => ['nullable', 'url', 'max:2048'],
+            'languageCode' => [
+                'nullable',
+                'string',
+                'max:8',
+            ],
+            'description' => [
+                'nullable',
+                'string',
+                'max:20000',
+            ],
+            'coverUrl' => [
+                'nullable',
+                'url',
+                'max:2048',
+            ],
             'isbn' => ['nullable', 'string', 'max:32'],
             'issn' => ['nullable', 'string', 'max:32'],
         ]);
@@ -187,11 +267,15 @@ class Create extends Component
      */
     private function fillFromImport(array $import): void
     {
-        $identifiers = is_array($import['identifiers'] ?? null)
+        $identifiers = is_array(
+            $import['identifiers'] ?? null,
+        )
             ? $import['identifiers']
             : [];
 
-        $creators = is_array($import['creators'] ?? null)
+        $creators = is_array(
+            $import['creators'] ?? null,
+        )
             ? array_filter(
                 $import['creators'],
                 static fn (mixed $creator): bool => is_string($creator),
@@ -199,35 +283,51 @@ class Create extends Component
             : [];
 
         $this->title = (string) ($import['title'] ?? '');
-        $this->subtitle = (string) ($import['subtitle'] ?? '');
+        $this->subtitle =
+            (string) ($import['subtitle'] ?? '');
         $this->creators = implode('; ', $creators);
-        $this->publisher = (string) ($import['publisher'] ?? '');
-        $this->publicationPlace = (string) ($import['publication_place'] ?? '');
-        $this->publicationYear = isset($import['publication_year'])
-            ? (string) $import['publication_year']
-            : '';
-        $this->edition = (string) ($import['edition'] ?? '');
-        $this->languageCode = (string) ($import['language_code'] ?? 'de');
-        $this->description = (string) ($import['description'] ?? '');
-        $this->isbn = is_string($identifiers['isbn'] ?? null)
-            ? IsbnDisplayFormatter::format($identifiers['isbn'])
-            : '';
-        $this->issn = is_string($identifiers['issn'] ?? null)
-            ? $identifiers['issn']
-            : '';
+        $this->publisher =
+            (string) ($import['publisher'] ?? '');
+        $this->publicationPlace =
+            (string) ($import['publication_place'] ?? '');
+        $this->publicationYear =
+            isset($import['publication_year'])
+                ? (string) $import['publication_year']
+                : '';
+        $this->edition =
+            (string) ($import['edition'] ?? '');
+        $this->languageCode =
+            (string) ($import['language_code'] ?? 'de');
+        $this->description =
+            (string) ($import['description'] ?? '');
+        $this->isbn =
+            is_string($identifiers['isbn'] ?? null)
+                ? IsbnDisplayFormatter::format(
+                    $identifiers['isbn'],
+                )
+                : '';
+        $this->issn =
+            is_string($identifiers['issn'] ?? null)
+                ? $identifiers['issn']
+                : '';
 
         if ($this->issn !== '' && $this->isbn === '') {
-            $this->type = Media::TYPE_MAGAZINE_ISSUE;
+            $this->type =
+                Media::TYPE_MAGAZINE_ISSUE;
         }
     }
 
-    private function publicationYearValue(mixed $value): ?int
-    {
-        return $value === '' || $value === null ? null : (int) $value;
+    private function publicationYearValue(
+        mixed $value,
+    ): ?int {
+        return $value === '' || $value === null
+            ? null
+            : (int) $value;
     }
 
-    private function nullableString(mixed $value): ?string
-    {
+    private function nullableString(
+        mixed $value,
+    ): ?string {
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;

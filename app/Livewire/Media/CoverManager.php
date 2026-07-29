@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use Throwable;
 
@@ -17,10 +18,7 @@ class CoverManager extends Component
 
     public Media $media;
 
-    /**
-     * @var mixed
-     */
-    public $upload = null;
+    public ?TemporaryUploadedFile $upload = null;
 
     public string $remoteUrl = '';
 
@@ -31,10 +29,8 @@ class CoverManager extends Component
         Gate::authorize('update', $media);
 
         $this->media = $media;
-        $this->remoteUrl = (string) (
-            $media->getAttribute('cover_source_url')
-            ?: $media->cover_url
-            ?: ''
+        $this->remoteUrl = trim(
+            (string) $media->getAttribute('cover_source_url'),
         );
     }
 
@@ -54,7 +50,10 @@ class CoverManager extends Component
         $this->errorMessage = '';
 
         try {
-            $covers->storeUpload($this->media, $this->upload);
+            $covers->storeUpload(
+                $this->media,
+                $this->upload,
+            );
         } catch (Throwable $exception) {
             Log::warning('Cover upload failed.', [
                 'media_id' => $this->media->getKey(),
@@ -62,7 +61,8 @@ class CoverManager extends Component
                 'message' => $exception->getMessage(),
             ]);
 
-            $this->errorMessage = 'Das Cover konnte nicht gespeichert werden.';
+            $this->errorMessage =
+                'Das Cover konnte nicht gespeichert werden.';
 
             return;
         }
@@ -96,14 +96,18 @@ class CoverManager extends Component
                 'message' => $exception->getMessage(),
             ]);
 
-            $this->errorMessage = 'Das Cover konnte nicht von der Adresse geladen werden.';
+            $this->errorMessage =
+                'Das Cover konnte nicht von der Adresse geladen werden.';
 
             return;
         }
 
         $this->media->refresh();
 
-        session()->flash('status', 'Cover wurde lokal gespeichert.');
+        session()->flash(
+            'status',
+            'Cover wurde lokal gespeichert.',
+        );
     }
 
     public function removeLocal(CoverStorageService $covers): void
@@ -113,7 +117,10 @@ class CoverManager extends Component
         $covers->removeLocal($this->media);
         $this->media->refresh();
 
-        session()->flash('status', 'Lokales Cover wurde entfernt.');
+        session()->flash(
+            'status',
+            'Lokales Cover wurde entfernt.',
+        );
     }
 
     public function render(CoverStorageService $covers): View

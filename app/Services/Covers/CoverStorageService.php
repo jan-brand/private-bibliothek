@@ -29,22 +29,34 @@ class CoverStorageService
         $mimeType = $file->getMimeType() ?: $file->getClientMimeType();
 
         if (! array_key_exists($mimeType, self::EXTENSIONS)) {
-            throw new RuntimeException('Das hochgeladene Coverformat wird nicht unterstützt.');
+            throw new RuntimeException(
+                'Das hochgeladene Coverformat wird nicht unterstützt.',
+            );
         }
 
-        $path = $this->pathFor($media, self::EXTENSIONS[$mimeType]);
+        $path = $this->pathFor(
+            $media,
+            self::EXTENSIONS[$mimeType],
+        );
 
-        $stored = Storage::disk('public')->putFileAs(
+        $stored = Storage::disk('local')->putFileAs(
             dirname($path),
             $file,
             basename($path),
         );
 
         if ($stored === false) {
-            throw new RuntimeException('Das Cover konnte nicht gespeichert werden.');
+            throw new RuntimeException(
+                'Das Cover konnte nicht gespeichert werden.',
+            );
         }
 
-        $this->replaceLocalCover($media, $path, $mimeType, null);
+        $this->replaceLocalCover(
+            $media,
+            $path,
+            $mimeType,
+            null,
+        );
 
         return $path;
     }
@@ -57,7 +69,9 @@ class CoverStorageService
         $body = $response->body();
 
         if ($body === '' || strlen($body) > self::MAX_REMOTE_BYTES) {
-            throw new RuntimeException('Die entfernte Coverdatei ist leer oder zu groß.');
+            throw new RuntimeException(
+                'Die entfernte Coverdatei ist leer oder zu groß.',
+            );
         }
 
         $mimeType = strtolower(trim(
@@ -65,23 +79,35 @@ class CoverStorageService
         ));
 
         if (! array_key_exists($mimeType, self::EXTENSIONS)) {
-            throw new RuntimeException('Die entfernte Adresse liefert kein unterstütztes Bildformat.');
+            throw new RuntimeException(
+                'Die entfernte Adresse liefert kein unterstütztes Bildformat.',
+            );
         }
 
-        $path = $this->pathFor($media, self::EXTENSIONS[$mimeType]);
+        $path = $this->pathFor(
+            $media,
+            self::EXTENSIONS[$mimeType],
+        );
 
-        if (! Storage::disk('public')->put($path, $body)) {
-            throw new RuntimeException('Das Cover konnte nicht gespeichert werden.');
+        if (! Storage::disk('local')->put($path, $body)) {
+            throw new RuntimeException(
+                'Das Cover konnte nicht gespeichert werden.',
+            );
         }
 
-        $this->replaceLocalCover($media, $path, $mimeType, $url);
+        $this->replaceLocalCover(
+            $media,
+            $path,
+            $mimeType,
+            $url,
+        );
 
         return $path;
     }
 
     public function removeLocal(Media $media): void
     {
-        $oldPath = $this->coverPath($media);
+        $oldPath = $this->storedPath($media);
 
         $media->forceFill([
             'cover_path' => null,
@@ -91,21 +117,41 @@ class CoverStorageService
         ])->save();
 
         if ($oldPath !== null) {
+            Storage::disk('local')->delete($oldPath);
             Storage::disk('public')->delete($oldPath);
         }
     }
 
     public function url(Media $media): ?string
     {
-        $path = $this->coverPath($media);
+        $path = $this->storedPath($media);
 
-        if ($path !== null && Storage::disk('public')->exists($path)) {
-            return Storage::disk('public')->url($path);
+        if (
+            $path !== null
+            && Storage::disk('local')->exists($path)
+        ) {
+            return route('media.cover', $media);
         }
 
-        $remoteUrl = trim((string) $media->getAttribute('cover_url'));
+        $remoteUrl = trim(
+            (string) $media->getAttribute('cover_url'),
+        );
 
         return $remoteUrl === '' ? null : $remoteUrl;
+    }
+
+    public function absolutePath(Media $media): ?string
+    {
+        $path = $this->storedPath($media);
+
+        if (
+            $path === null
+            || ! Storage::disk('local')->exists($path)
+        ) {
+            return null;
+        }
+
+        return Storage::disk('local')->path($path);
     }
 
     private function request(): PendingRequest
@@ -116,8 +162,10 @@ class CoverStorageService
             ->retry(2, 250);
     }
 
-    private function pathFor(Media $media, string $extension): string
-    {
+    private function pathFor(
+        Media $media,
+        string $extension,
+    ): string {
         return sprintf(
             'covers/%s/%s/%s.%s',
             $media->library_id,
@@ -133,7 +181,7 @@ class CoverStorageService
         string $mimeType,
         ?string $sourceUrl,
     ): void {
-        $oldPath = $this->coverPath($media);
+        $oldPath = $this->storedPath($media);
 
         $media->forceFill([
             'cover_path' => $path,
@@ -143,13 +191,16 @@ class CoverStorageService
         ])->save();
 
         if ($oldPath !== null && $oldPath !== $path) {
+            Storage::disk('local')->delete($oldPath);
             Storage::disk('public')->delete($oldPath);
         }
     }
 
-    private function coverPath(Media $media): ?string
+    private function storedPath(Media $media): ?string
     {
-        $path = trim((string) $media->getAttribute('cover_path'));
+        $path = trim(
+            (string) $media->getAttribute('cover_path'),
+        );
 
         return $path === '' ? null : $path;
     }

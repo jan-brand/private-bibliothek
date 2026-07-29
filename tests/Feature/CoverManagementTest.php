@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Livewire\Media\CoverManager;
-use App\Models\Library;
 use App\Models\LibraryMembership;
 use App\Models\Media;
 use App\Models\User;
@@ -20,6 +19,7 @@ class CoverManagementTest extends TestCase
 
     public function test_cover_can_be_uploaded_and_removed(): void
     {
+        Storage::fake('local');
         Storage::fake('public');
 
         [$user, $media] = $this->context();
@@ -34,30 +34,42 @@ class CoverManagementTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(CoverManager::class, ['media' => $media])
+        Livewire::test(
+            CoverManager::class,
+            ['media' => $media],
+        )
             ->set('upload', $file)
             ->call('storeUpload')
             ->assertHasNoErrors();
 
         $media->refresh();
 
-        $path = (string) $media->getAttribute('cover_path');
+        $path = (string) $media->getAttribute(
+            'cover_path',
+        );
 
         $this->assertNotSame('', $path);
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('local')->assertExists($path);
+        Storage::disk('public')->assertMissing($path);
 
-        Livewire::test(CoverManager::class, ['media' => $media])
+        Livewire::test(
+            CoverManager::class,
+            ['media' => $media],
+        )
             ->call('removeLocal')
             ->assertHasNoErrors();
 
         $media->refresh();
 
-        $this->assertNull($media->getAttribute('cover_path'));
-        Storage::disk('public')->assertMissing($path);
+        $this->assertNull(
+            $media->getAttribute('cover_path'),
+        );
+        Storage::disk('local')->assertMissing($path);
     }
 
-    public function test_remote_cover_can_be_stored_locally(): void
+    public function test_remote_cover_can_be_stored_privately(): void
     {
+        Storage::fake('local');
         Storage::fake('public');
 
         Http::fake([
@@ -72,20 +84,30 @@ class CoverManagementTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(CoverManager::class, ['media' => $media])
-            ->set('remoteUrl', 'https://covers.example.test/book.png')
+        Livewire::test(
+            CoverManager::class,
+            ['media' => $media],
+        )
+            ->set(
+                'remoteUrl',
+                'https://covers.example.test/book.png',
+            )
             ->call('importRemote')
             ->assertHasNoErrors();
 
         $media->refresh();
 
-        $path = (string) $media->getAttribute('cover_path');
+        $path = (string) $media->getAttribute(
+            'cover_path',
+        );
 
         $this->assertSame(
             'https://covers.example.test/book.png',
             $media->getAttribute('cover_source_url'),
         );
-        Storage::disk('public')->assertExists($path);
+
+        Storage::disk('local')->assertExists($path);
+        Storage::disk('public')->assertMissing($path);
     }
 
     /**
@@ -97,26 +119,16 @@ class CoverManagementTest extends TestCase
             'is_active' => true,
         ]);
 
-        $library = Library::query()->create([
-            'name' => 'Private Bibliothek',
-            'slug' => 'private-'.$user->getKey(),
-            'type' => Library::TYPE_PRIVATE,
-            'owner_user_id' => $user->getKey(),
-        ]);
+        $this->addLibraryMember(
+            $user,
+            LibraryMembership::ROLE_OWNER,
+        );
 
-        LibraryMembership::query()->create([
-            'library_id' => $library->getKey(),
-            'user_id' => $user->getKey(),
-            'role' => LibraryMembership::ROLE_OWNER,
-        ]);
-
-        $media = Media::query()->create([
-            'library_id' => $library->getKey(),
-            'type' => Media::TYPE_BOOK,
-            'title' => 'Cover-Test',
-            'created_by_user_id' => $user->getKey(),
-            'updated_by_user_id' => $user->getKey(),
-        ]);
+        $media = $this->createMediaFor(
+            $user,
+            'Cover-Test',
+            Media::VISIBILITY_PRIVATE,
+        );
 
         return [$user, $media];
     }

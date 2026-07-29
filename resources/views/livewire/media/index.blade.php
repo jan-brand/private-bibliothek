@@ -7,21 +7,15 @@
                 </p>
                 <h1 class="mt-2 text-3xl font-semibold tracking-tight">Medienkatalog</h1>
                 <p class="mt-3 text-stone-600">
-                    Bibliografische Datensätze und ihre vorhandenen Exemplare.
+                    Gemeinsame Medien und deine privaten Medien.
                 </p>
             </div>
 
             <div class="flex flex-wrap gap-3">
-                <a
-                    href="{{ route('media.import') }}"
-                    class="rounded-lg border border-stone-300 px-4 py-2 text-center text-sm font-medium hover:bg-stone-100"
-                >
+                <a href="{{ route('media.import') }}" class="rounded-lg border border-stone-300 px-4 py-2 text-center text-sm font-medium hover:bg-stone-100">
                     Metadaten importieren
                 </a>
-                <a
-                    href="{{ route('media.create') }}"
-                    class="rounded-lg bg-stone-900 px-4 py-2 text-center text-sm font-medium text-white hover:bg-stone-700"
-                >
+                <a href="{{ route('media.create') }}" class="rounded-lg bg-stone-900 px-4 py-2 text-center text-sm font-medium text-white hover:bg-stone-700">
                     Medium anlegen
                 </a>
             </div>
@@ -47,9 +41,16 @@
             >
                 <div class="flex flex-col justify-between gap-3 sm:flex-row">
                     <div>
-                        <p class="text-xs font-medium uppercase tracking-wide text-stone-500">
-                            {{ $media->typeLabel() }}
-                        </p>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <p class="text-xs font-medium uppercase tracking-wide text-stone-500">
+                                {{ $media->typeLabel() }}
+                            </p>
+
+                            <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $media->isPrivate() ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900' }}">
+                                {{ $media->visibilityLabel() }}
+                            </span>
+                        </div>
+
                         <h2 class="mt-1 text-lg font-semibold">{{ $media->title }}</h2>
 
                         @if ($media->subtitle)

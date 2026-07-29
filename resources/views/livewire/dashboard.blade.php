@@ -9,42 +9,38 @@
         </h1>
 
         <p class="mt-3 text-stone-600">
-            Wähle die Bibliothek aus, in der du arbeiten möchtest.
+            Alle Benutzer arbeiten gemeinsam im Katalog {{ $library->name }}.
+            Private Medien und Listen bleiben nur für ihre Eigentümer sichtbar.
         </p>
     </section>
 
-    <livewire:library-switcher />
+    <section class="grid gap-4 sm:grid-cols-2">
+        <article class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+            <p class="text-sm text-stone-500">Für dich sichtbare Medien</p>
+            <p class="mt-2 text-3xl font-semibold">{{ $visibleMediaCount }}</p>
+        </article>
+
+        <article class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+            <p class="text-sm text-stone-500">Deine privaten Medien</p>
+            <p class="mt-2 text-3xl font-semibold">{{ $privateMediaCount }}</p>
+        </article>
+    </section>
 
     <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-semibold">Aktive Bibliothek</h2>
+        <h2 class="text-lg font-semibold">MiniBib öffnen</h2>
 
-        @if ($selectedLibrary !== null)
-            <dl class="mt-5 grid gap-4 sm:grid-cols-2">
-                <div class="rounded-xl bg-stone-100 p-4">
-                    <dt class="text-sm text-stone-500">Name</dt>
-                    <dd class="mt-1 font-medium">{{ $selectedLibrary->name }}</dd>
-                </div>
+        <div class="mt-5 flex flex-wrap gap-3">
+            <a href="{{ route('media.index') }}" class="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">
+                Medien öffnen
+            </a>
 
-                <div class="rounded-xl bg-stone-100 p-4">
-                    <dt class="text-sm text-stone-500">Bereich</dt>
-                    <dd class="mt-1 font-medium">
-                        {{ $selectedLibrary->isPrivate() ? 'Private Bibliothek' : 'Gemeinsame Bibliothek' }}
-                    </dd>
-                </div>
-            </dl>
+            <a href="{{ route('lists.index') }}" class="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100">
+                Listen öffnen
+            </a>
 
-            <div class="mt-6 flex flex-wrap gap-3">
-                <a href="{{ route('media.index') }}" class="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">
-                    Medien öffnen
-                </a>
-                <a href="{{ route('locations.index') }}" class="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100">
-                    Standorte verwalten
-                </a>
-            </div>
-        @else
-            <p class="mt-3 text-sm text-stone-500">
-                Keine zugängliche Bibliothek vorhanden.
-            </p>
-        @endif
+            <a href="{{ route('locations.index') }}" class="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100">
+                Standorte verwalten
+            </a>
+        </div>
     </section>
 </div>

@@ -40,6 +40,13 @@
                     </a>
 
                     <a
+                        href="{{ route('lists.index') }}"
+                        class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
+                    >
+                        Listen
+                    </a>
+
+                    <a
                         href="{{ route('locations.index') }}"
                         class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
                     >

@@ -24,10 +24,9 @@ class LibraryPolicy
 
     public function view(User $user, Library $library): bool
     {
-        return $library->owner_user_id === $user->getKey()
-            || $library->memberships()
-                ->where('user_id', $user->getKey())
-                ->exists();
+        return $library->memberships()
+            ->where('user_id', $user->getKey())
+            ->exists();
     }
 
     public function create(User $user): bool
@@ -37,10 +36,6 @@ class LibraryPolicy
 
     public function update(User $user, Library $library): bool
     {
-        if ($library->owner_user_id === $user->getKey()) {
-            return true;
-        }
-
         return $library->memberships()
             ->where('user_id', $user->getKey())
             ->whereIn('role', [
@@ -52,8 +47,7 @@ class LibraryPolicy
 
     public function delete(User $user, Library $library): bool
     {
-        return $library->isPrivate()
-            && $library->owner_user_id === $user->getKey();
+        return false;
     }
 
     public function restore(User $user, Library $library): bool

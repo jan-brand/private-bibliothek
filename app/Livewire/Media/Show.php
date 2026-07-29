@@ -25,6 +25,7 @@ class Show extends Component
 
         $this->media->load([
             'library',
+            'owner',
             'identifiers',
             'copies.location.parent.parent.parent',
             'copies.owners',

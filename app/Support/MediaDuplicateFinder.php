@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Library;
 use App\Models\Media;
 use App\Models\MediaIdentifier;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
@@ -15,6 +16,7 @@ class MediaDuplicateFinder
      */
     public function find(
         Library $library,
+        User $user,
         string $title,
         ?int $publicationYear,
         array $identifiers,
@@ -28,6 +30,7 @@ class MediaDuplicateFinder
         if ($normalizedIdentifiers->isNotEmpty()) {
             $duplicate = Media::query()
                 ->forLibrary($library)
+                ->visibleTo($user)
                 ->when(
                     $ignore !== null,
                     fn (Builder $query): Builder => $query->where(
@@ -54,6 +57,7 @@ class MediaDuplicateFinder
 
         return Media::query()
             ->forLibrary($library)
+            ->visibleTo($user)
             ->when(
                 $ignore !== null,
                 fn (Builder $query): Builder => $query->where(

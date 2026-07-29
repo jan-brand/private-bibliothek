@@ -10,8 +10,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Library extends Model
 {
-    public const TYPE_PRIVATE = 'private';
-
     public const TYPE_SHARED = 'shared';
 
     /**
@@ -63,6 +61,11 @@ class Library extends Model
         return $this->hasMany(Location::class);
     }
 
+    public function mediaLists(): HasMany
+    {
+        return $this->hasMany(MediaList::class);
+    }
+
     /**
      * @param  Builder<Library>  $query
      * @return Builder<Library>
@@ -73,21 +76,16 @@ class Library extends Model
             return $query;
         }
 
-        return $query->where(function (Builder $query) use ($user): void {
-            $query->where('owner_user_id', $user->getKey())
-                ->orWhereHas('memberships', function (Builder $query) use ($user): void {
-                    $query->where('user_id', $user->getKey());
-                });
-        });
-    }
-
-    public function isPrivate(): bool
-    {
-        return $this->type === self::TYPE_PRIVATE;
+        return $query->whereHas(
+            'memberships',
+            function (Builder $query) use ($user): void {
+                $query->where('user_id', $user->getKey());
+            },
+        );
     }
 
     public function isShared(): bool
     {
-        return $this->type === self::TYPE_SHARED;
+        return true;
     }
 }

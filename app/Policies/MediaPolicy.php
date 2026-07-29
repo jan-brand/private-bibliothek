@@ -24,22 +24,32 @@ class MediaPolicy
 
     public function view(User $user, Media $media): bool
     {
-        return $user->can('view', $media->library);
+        if (! $user->can('view', $media->library)) {
+            return false;
+        }
+
+        return ! $media->isPrivate()
+            || $media->isOwnedBy($user);
     }
 
     public function create(User $user, Library $library): bool
     {
-        return $user->can('update', $library);
+        return $user->can('view', $library);
     }
 
     public function update(User $user, Media $media): bool
     {
-        return $user->can('update', $media->library);
+        return $media->isOwnedBy($user);
+    }
+
+    public function changeVisibility(User $user, Media $media): bool
+    {
+        return $media->isOwnedBy($user);
     }
 
     public function delete(User $user, Media $media): bool
     {
-        return $user->can('update', $media->library);
+        return $media->isOwnedBy($user);
     }
 
     public function restore(User $user, Media $media): bool
