@@ -25,32 +25,28 @@
 
             <nav class="flex flex-wrap items-center gap-2 text-sm">
                 @auth
-                    <a
-                        href="{{ route('dashboard') }}"
-                        class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
-                    >
+                    <a href="{{ route('dashboard') }}" class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">
                         Dashboard
                     </a>
 
-                    <a
-                        href="{{ route('media.index') }}"
-                        class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
-                    >
+                    <a href="{{ route('media.index') }}" class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">
                         Medien
                     </a>
 
-                    <a
-                        href="{{ route('lists.index') }}"
-                        class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
-                    >
+                    <a href="{{ route('lists.index') }}" class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">
                         Listen
                     </a>
 
-                    <a
-                        href="{{ route('locations.index') }}"
-                        class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
-                    >
+                    <a href="{{ route('locations.index') }}" class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">
                         Standorte
+                    </a>
+
+                    <a href="{{ route('loans.index') }}" class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">
+                        Ausleihen
+                    </a>
+
+                    <a href="{{ route('borrowers.index') }}" class="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">
+                        Entleihende
                     </a>
 
                     <span class="hidden text-stone-500 sm:inline">
@@ -60,18 +56,12 @@
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
 
-                        <button
-                            type="submit"
-                            class="rounded-lg border border-stone-300 px-3 py-2 font-medium text-stone-700 hover:bg-stone-100"
-                        >
+                        <button type="submit" class="rounded-lg border border-stone-300 px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">
                             Abmelden
                         </button>
                     </form>
                 @else
-                    <a
-                        href="{{ route('login') }}"
-                        class="rounded-lg bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-700"
-                    >
+                    <a href="{{ route('login') }}" class="rounded-lg bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-700">
                         Anmelden
                     </a>
                 @endauth

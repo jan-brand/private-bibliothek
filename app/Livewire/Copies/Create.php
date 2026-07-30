@@ -77,7 +77,7 @@ class Create extends Component
             'inventoryCode' => ['nullable', 'string', 'max:255'],
             'barcode' => ['nullable', 'string', 'max:255'],
             'condition' => ['required', Rule::in(array_keys(Copy::conditions()))],
-            'status' => ['required', Rule::in(array_keys(Copy::statuses()))],
+            'status' => ['required', Rule::in(array_keys(Copy::manuallyEditableStatuses()))],
             'acquiredAt' => ['nullable', 'date'],
             'acquisitionSource' => ['nullable', 'string', 'max:255'],
             'purchasePrice' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
@@ -207,7 +207,7 @@ class Create extends Component
                 ->orderBy('name')
                 ->get(),
             'conditions' => Copy::conditions(),
-            'statuses' => Copy::statuses(),
+            'statuses' => Copy::manuallyEditableStatuses(),
         ]);
     }
 

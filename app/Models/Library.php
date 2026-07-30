@@ -66,6 +66,16 @@ class Library extends Model
         return $this->hasMany(MediaList::class);
     }
 
+    public function borrowers(): HasMany
+    {
+        return $this->hasMany(Borrower::class);
+    }
+
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class);
+    }
+
     /**
      * @param  Builder<Library>  $query
      * @return Builder<Library>

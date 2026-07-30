@@ -60,6 +60,20 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         },
     )->name('lists.show');
 
+    Route::view('/borrowers', 'borrowers.index')
+        ->name('borrowers.index');
+
+    Route::view('/loans', 'loans.index')
+        ->name('loans.index');
+
+    Route::get('/loans/create', function (Request $request) {
+        $copyId = $request->integer('copy');
+
+        return view('loans.create', [
+            'copyId' => $copyId > 0 ? $copyId : null,
+        ]);
+    })->name('loans.create');
+
     Route::get('/copies/{copy}/edit', function (Copy $copy) {
         $copy->loadMissing('media');
 
