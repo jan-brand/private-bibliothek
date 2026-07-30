@@ -117,12 +117,22 @@
                             @endif
                         </div>
 
-                        <div class="flex items-start gap-3">
+                        <div class="flex flex-wrap items-start gap-3">
                             <span class="text-sm text-stone-600">
                                 {{ $copy->location?->breadcrumb() ?: 'Kein Standort' }}
                             </span>
 
                             @can('update', $copy)
+                                @if ($copy->isLoanable())
+                                    <a href="{{ route('loans.create', ['copy' => $copy->id]) }}" class="rounded-lg bg-stone-900 px-3 py-1 text-sm font-medium text-white">
+                                        Ausleihen
+                                    </a>
+                                @elseif ($copy->activeLoan)
+                                    <a href="{{ route('loans.index') }}" class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-900">
+                                        Ausleihe öffnen
+                                    </a>
+                                @endif
+
                                 <a href="{{ route('copies.edit', $copy) }}" class="rounded-lg border border-stone-300 px-3 py-1 text-sm font-medium">
                                     Bearbeiten
                                 </a>
@@ -133,6 +143,15 @@
                     <p class="mt-3 text-sm text-stone-600">
                         Eigentum: {{ $copy->owners->pluck('name')->join(', ') }}
                     </p>
+
+                    @can('update', $copy)
+                        @if ($copy->activeLoan)
+                            <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                                Ausgeliehen an {{ $copy->activeLoan->borrower->name }}.
+                                Fällig: {{ $copy->activeLoan->due_at?->format('d.m.Y') ?? 'ohne Frist' }}.
+                            </div>
+                        @endif
+                    @endcan
                 </article>
             @empty
                 <p class="text-sm text-stone-500">Noch kein Exemplar vorhanden.</p>

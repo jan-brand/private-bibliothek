@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Copy extends Model
 {
@@ -83,6 +84,17 @@ class Copy extends Model
         ];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public static function manuallyEditableStatuses(): array
+    {
+        $statuses = self::statuses();
+        unset($statuses[self::STATUS_LOANED]);
+
+        return $statuses;
+    }
+
     public function library(): BelongsTo
     {
         return $this->belongsTo(Library::class);
@@ -109,6 +121,17 @@ class Copy extends Model
             ->withTimestamps();
     }
 
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class);
+    }
+
+    public function activeLoan(): HasOne
+    {
+        return $this->hasOne(Loan::class)
+            ->whereNull('returned_at');
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
@@ -127,5 +150,11 @@ class Copy extends Model
     public function statusLabel(): string
     {
         return self::statuses()[$this->status] ?? $this->status;
+    }
+
+    public function isLoanable(): bool
+    {
+        return $this->status === self::STATUS_AVAILABLE
+            && ! $this->activeLoan()->exists();
     }
 }

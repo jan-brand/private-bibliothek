@@ -45,7 +45,7 @@ class Edit extends Component
     {
         Gate::authorize('update', $copy);
 
-        $copy->load('owners', 'library', 'media');
+        $copy->load('owners', 'library', 'media', 'activeLoan.borrower');
 
         $this->copy = $copy;
         $this->locationId = $copy->location_id !== null ? (string) $copy->location_id : '';
@@ -71,12 +71,17 @@ class Edit extends Component
         $library = $this->copy->library;
         abort_unless($library instanceof Library, 404);
 
+        $hasActiveLoan = $this->copy->activeLoan()->exists();
+        $allowedStatuses = $hasActiveLoan
+            ? [Copy::STATUS_LOANED => Copy::statuses()[Copy::STATUS_LOANED]]
+            : Copy::manuallyEditableStatuses();
+
         $validated = $this->validate([
             'locationId' => ['nullable', 'integer'],
             'inventoryCode' => ['nullable', 'string', 'max:255'],
             'barcode' => ['nullable', 'string', 'max:255'],
             'condition' => ['required', Rule::in(array_keys(Copy::conditions()))],
-            'status' => ['required', Rule::in(array_keys(Copy::statuses()))],
+            'status' => ['required', Rule::in(array_keys($allowedStatuses))],
             'acquiredAt' => ['nullable', 'date'],
             'acquisitionSource' => ['nullable', 'string', 'max:255'],
             'purchasePrice' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
@@ -189,6 +194,15 @@ class Edit extends Component
     {
         Gate::authorize('delete', $this->copy);
 
+        if ($this->copy->loans()->exists()) {
+            $this->addError(
+                'delete',
+                'Ein Exemplar mit Ausleihhistorie kann nicht gelöscht werden.',
+            );
+
+            return;
+        }
+
         $mediaId = $this->copy->media_id;
         $this->copy->delete();
 
@@ -209,6 +223,8 @@ class Edit extends Component
         $library = $this->copy->library;
         abort_unless($library instanceof Library, 404);
 
+        $hasActiveLoan = $this->copy->activeLoan()->exists();
+
         return view('livewire.copies.edit', [
             'locations' => Location::query()
                 ->where('library_id', $library->getKey())
@@ -222,7 +238,10 @@ class Edit extends Component
                 ->orderBy('name')
                 ->get(),
             'conditions' => Copy::conditions(),
-            'statuses' => Copy::statuses(),
+            'statuses' => $hasActiveLoan
+                ? [Copy::STATUS_LOANED => Copy::statuses()[Copy::STATUS_LOANED]]
+                : Copy::manuallyEditableStatuses(),
+            'hasActiveLoan' => $hasActiveLoan,
         ]);
     }
 

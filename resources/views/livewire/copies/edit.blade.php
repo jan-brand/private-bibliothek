@@ -2,6 +2,13 @@
     <h1 class="text-3xl font-semibold tracking-tight">Exemplar bearbeiten</h1>
     <p class="mt-2 text-stone-600">{{ $copy->media->title }}</p>
 
+    @if ($hasActiveLoan)
+        <div class="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+            Dieses Exemplar ist aktiv ausgeliehen. Der Status wird durch die Ausleihverwaltung gesteuert.
+            <a href="{{ route('loans.index') }}" class="ml-1 font-medium underline">Ausleihe öffnen</a>
+        </div>
+    @endif
+
     <div class="mt-6 grid gap-5 sm:grid-cols-2">
         <label class="block">
             <span class="text-sm font-medium">Inventarnummer</span>
@@ -33,15 +40,17 @@
                     <option value="{{ $value }}">{{ $label }}</option>
                 @endforeach
             </select>
+            @error('condition') <span class="mt-1 block text-sm text-red-700">{{ $message }}</span> @enderror
         </label>
 
         <label class="block">
             <span class="text-sm font-medium">Status</span>
-            <select wire:model="status" class="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2">
+            <select wire:model="status" class="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2" @disabled($hasActiveLoan)>
                 @foreach ($statuses as $value => $label)
                     <option value="{{ $value }}">{{ $label }}</option>
                 @endforeach
             </select>
+            @error('status') <span class="mt-1 block text-sm text-red-700">{{ $message }}</span> @enderror
         </label>
 
         <fieldset class="sm:col-span-2">
@@ -92,4 +101,6 @@
             Exemplar löschen
         </button>
     </div>
+
+    @error('delete') <p class="mt-3 text-sm text-red-700">{{ $message }}</p> @enderror
 </form>
