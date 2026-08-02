@@ -1,0 +1,25 @@
+[Unit]
+Description=MiniBib Laravel Queue Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=minibib
+Group=www-data
+WorkingDirectory=/srv/minibib/current
+ExecStart=/usr/bin/php artisan queue:work database --queue=default --sleep=3 --tries=3 --backoff=5 --timeout=60 --max-time=3600
+ExecReload=/usr/bin/php artisan queue:restart
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=90
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=minibib-queue
+
+[Install]
+WantedBy=multi-user.target

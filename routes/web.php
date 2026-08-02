@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\HealthController;
 use App\Http\Controllers\MediaCoverController;
 use App\Models\Copy;
 use App\Models\Media;
@@ -101,8 +100,3 @@ Route::middleware(['auth', 'active'])->group(function (): void {
             );
     })->name('logout');
 });
-
-Route::get(
-    '/health/ready',
-    [HealthController::class, 'ready'],
-)->name('health.ready');
