@@ -1,0 +1,29 @@
+[Unit]
+Description=MiniBib PostgreSQL and Storage Backup
+After=network-online.target postgresql.service
+Wants=network-online.target
+ConditionPathExists=/etc/minibib/backup.env
+ConditionPathExists=/etc/minibib/pgpass
+
+[Service]
+Type=oneshot
+User=minibib
+Group=www-data
+EnvironmentFile=/etc/minibib/backup.env
+ExecStart=/usr/local/sbin/minibib-backup
+UMask=0077
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/srv/minibib/current /etc/minibib
+ReadWritePaths=/var/backups/minibib
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=minibib-backup

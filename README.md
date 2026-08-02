@@ -222,14 +222,21 @@ Versionierte systemd-Vorlagen liegen in:
 deploy/systemd
 ```
 
-Die zugehörige Betriebsdokumentation liegt in:
+Die zugehörige Betriebsdokumentation liegt unter:
 
 ```text
-docs/production/systemd.md
+docs/production
 ```
+
+Dort sind systemd, Nginx/PHP-FPM sowie Backup und Wiederherstellung beschrieben.
 
 Die Vorlagen verwenden den Linux-Benutzer `minibib`, die Gruppe `www-data` und
 den Projektpfad `/srv/minibib/current`.
+
+Tägliche Datenbank- und Storage-Backups werden außerhalb des Webroots unter
+`/var/backups/minibib` abgelegt. Versionierte Vorlagen befinden sich unter
+`deploy/backup` und `deploy/systemd`. Restore-Prüfungen verwenden eine getrennte
+PostgreSQL-Rolle und überschreiben keine vorhandene Prüfdatenbank.
 
 ## GitHub Actions
 
@@ -257,9 +264,8 @@ dem Server.
 
 Phase 9 wird anschließend ergänzt um:
 
-- Nginx und PHP-FPM
 - Installations- und Deployment-Ablauf
-- PostgreSQL- und Storage-Backups
-- Wiederherstellungstest
-- HTTPS- und Server-Härtung
+- Offsite-Kopie der Backups
+- dokumentierter Wiederherstellungstest auf der Ziel-VM
+- HTTPS-, Firewall- und Server-Härtung
 - Produktionsabnahme der Health-Checks
