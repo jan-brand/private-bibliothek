@@ -1,0 +1,18 @@
+[Unit]
+Description=MiniBib Laravel Scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=minibib
+Group=www-data
+WorkingDirectory=/srv/minibib/current
+ExecStart=/usr/bin/php artisan schedule:run
+TimeoutStartSec=300
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=minibib-scheduler

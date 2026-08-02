@@ -1,89 +1,67 @@
 # MiniBib
 
-MiniBib ist eine private Bibliotheksverwaltung auf Basis von Laravel, Livewire und PostgreSQL.
+MiniBib ist eine private Bibliotheksverwaltung für eine gemeinsame Bibliothek.
+Die Anwendung basiert auf Laravel, Livewire und PostgreSQL und unterstützt
+private sowie gemeinsam sichtbare Daten.
 
 ## Projektstatus
 
-**Phase 0 – Projektgrundlage: abgeschlossen**
+Die fachlichen Phasen 1 bis 8 sind abgeschlossen. Phase 9 zur Produktionsreife
+ist in Arbeit.
 
-Die aktuelle Grundlage umfasst:
+Der aktuelle Funktionsumfang umfasst:
+
+- Anmeldung ohne öffentliche Registrierung
+- Benutzer, Mitgliedschaften und Rollen
+- private und gemeinsame Medien
+- Exemplare und hierarchische Standorte
+- DNB- und ZDB-Metadatenimport
+- geschützte private Cover
+- ISBN-, Kennungs- und Barcodeverarbeitung
+- private und gemeinsame Listen
+- persönliche Lesestatus
+- entleihende Personen
+- Ausleihen, Rückgaben und Überfälligkeit
+- PostgreSQL-Volltextsuche und Katalogfilter
+- Liveness- und Readiness-Checks
+- Queue- und Scheduler-Smoke-Tests
+
+## Technischer Stand
 
 - Laravel 13
 - Livewire 4
 - PHP 8.4
-- PostgreSQL für Entwicklung und Tests
+- PostgreSQL
 - Vite und Tailwind CSS
-- deutsches Gebietsschema und Zeitzone `Europe/Berlin`
-- Datenbank-Sessions, Cache und Queue
-- Healthchecks für Anwendung und Datenbank
-- Queue- und Scheduler-Smoke-Tests
+- Locale `de`
+- Zeitzone `Europe/Berlin`
+- Datenbank-Sessions
+- Datenbank-Cache
+- Datenbank-Queue
 - Laravel Pint
 - Larastan/PHPStan
-- PHPUnit-Tests
-- GitHub Actions CI
-- Windows-CMD-Hilfsskripte
+- PHPUnit
+- GitHub Actions
 
-## Voraussetzungen
+## Lokale Voraussetzungen
 
-Für die lokale Entwicklung werden benötigt:
+Erforderlich sind:
 
-- PHP 8.4 mit mindestens:
-  - `curl`
-  - `dom`
-  - `fileinfo`
-  - `intl`
-  - `mbstring`
-  - `openssl`
-  - `pdo_pgsql`
-  - `pgsql`
-  - `xml`
-  - `xmlwriter`
-  - `zip`
+- PHP 8.4 mit `curl`, `dom`, `fileinfo`, `intl`, `mbstring`, `openssl`,
+  `pdo_pgsql`, `pgsql`, `xml`, `xmlwriter` und `zip`
 - Composer 2
 - Node.js 24 und npm
 - PostgreSQL
 - Git
 
-## Repository klonen
+## Lokale Installation
+
+Repository klonen:
 
 ```cmd
 git clone https://github.com/jan-brand/private-bibliothek.git
 cd private-bibliothek
 ```
-
-## PostgreSQL einrichten
-
-Als PostgreSQL-Administrator anmelden:
-
-```cmd
-"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h 127.0.0.1
-```
-
-Rolle und Datenbanken anlegen:
-
-```sql
-CREATE ROLE minibib
-    WITH LOGIN
-    PASSWORD 'DEIN_SICHERES_PASSWORT';
-
-CREATE DATABASE minibib
-    WITH OWNER minibib
-    ENCODING 'UTF8'
-    TEMPLATE template0;
-
-CREATE DATABASE minibib_test
-    WITH OWNER minibib
-    ENCODING 'UTF8'
-    TEMPLATE template0;
-```
-
-PostgreSQL verlassen:
-
-```sql
-\q
-```
-
-## Anwendung konfigurieren
 
 Abhängigkeiten installieren:
 
@@ -99,32 +77,7 @@ copy .env.example .env
 php artisan key:generate
 ```
 
-In `.env` die PostgreSQL-Verbindung eintragen:
-
-```dotenv
-APP_NAME=MiniBib
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://127.0.0.1:8000
-
-APP_LOCALE=de
-APP_FALLBACK_LOCALE=de
-APP_FAKER_LOCALE=de_DE
-APP_TIMEZONE=Europe/Berlin
-
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_DATABASE=minibib
-DB_USERNAME=minibib
-DB_PASSWORD=DEIN_SICHERES_PASSWORT
-
-SESSION_DRIVER=database
-CACHE_STORE=database
-QUEUE_CONNECTION=database
-
-MAIL_MAILER=log
-```
+Die PostgreSQL-Zugangsdaten werden ausschließlich in `.env` eingetragen.
 
 Datenbank initialisieren:
 
@@ -134,53 +87,23 @@ php artisan migrate
 php artisan storage:link
 ```
 
-## Testumgebung konfigurieren
+## Testumgebung
 
-Eine lokale `.env.testing` anlegen:
+Die Testdatenbank wird über `.env.testing` konfiguriert. Diese Datei darf ebenso
+wie `.env` nicht committed werden.
 
-```dotenv
-APP_NAME=MiniBib
-APP_ENV=testing
-APP_KEY=
-APP_DEBUG=true
-APP_URL=http://127.0.0.1
-
-APP_LOCALE=de
-APP_FALLBACK_LOCALE=de
-APP_FAKER_LOCALE=de_DE
-APP_TIMEZONE=Europe/Berlin
-
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_DATABASE=minibib_test
-DB_USERNAME=minibib
-DB_PASSWORD=DEIN_SICHERES_PASSWORT
-
-CACHE_STORE=array
-SESSION_DRIVER=array
-QUEUE_CONNECTION=sync
-MAIL_MAILER=array
-```
-
-Testschlüssel erzeugen und Testdatenbank migrieren:
+Testschlüssel erzeugen und Testdatenbank neu migrieren:
 
 ```cmd
 php artisan key:generate --env=testing
 php artisan migrate:fresh --env=testing
 ```
 
-`.env` und `.env.testing` dürfen nicht committed werden.
-
 ## Windows-Hilfsskripte
-
-Die vorhandenen CMD-Dateien verwenden auf dem aktuellen Entwicklungsrechner die installierte PHP-8.4-WinGet-Version.
-
-Bei einem anderen Windows-Benutzer oder Installationspfad muss die Variable `PHP84` in den CMD-Dateien angepasst werden.
 
 | Datei | Funktion |
 |---|---|
-| `dev.cmd` | Laravel-Server, Queue-Worker und Vite starten |
+| `dev.cmd` | Entwicklungsserver, Queue-Worker und Vite starten |
 | `artisan.cmd` | Artisan mit PHP 8.4 ausführen |
 | `composer84.cmd` | Composer mit PHP 8.4 ausführen |
 | `test.cmd` | Tests ausführen |
@@ -190,64 +113,46 @@ Bei einem anderen Windows-Benutzer oder Installationspfad muss die Variable `PHP
 | `queue-smoke.cmd` | Queue-Smoke-Test einreihen |
 | `scheduler-work.cmd` | Scheduler lokal starten |
 
-## Entwicklungsumgebung starten
+Die CMD-Dateien verwenden auf dem Entwicklungsrechner den installierten
+PHP-8.4-WinGet-Pfad.
+
+## Entwicklungsumgebung
 
 ```cmd
 dev.cmd
 ```
 
-Alternativ:
+Die Anwendung ist anschließend unter `http://127.0.0.1:8000` erreichbar.
 
-```cmd
-composer run dev
-```
+## Health-Checks
 
-Die Anwendung ist erreichbar unter:
-
-```text
-http://127.0.0.1:8000
-```
-
-`dev.cmd` startet:
-
-- Laravel-Entwicklungsserver
-- Queue-Worker
-- Vite-Entwicklungsserver
-
-Der Prozess läuft weiter, bis er mit `Strg + C` beendet wird.
-
-## Healthchecks
-
-Liveness-Check:
+Liveness:
 
 ```text
 GET /health/live
 ```
 
-Readiness-Check mit Datenbankprüfung:
+Readiness:
 
 ```text
 GET /health/ready
 ```
 
-Lokal prüfen:
+Der Readiness-Endpunkt prüft PostgreSQL und den beschreibbaren privaten Storage.
+Er ist zustandslos registriert und erzeugt keine Session-Cookies.
 
-```cmd
-curl -i http://127.0.0.1:8000/health/live
-curl -i http://127.0.0.1:8000/health/ready
-```
-
-Eine erfolgreiche Readiness-Antwort enthält:
+Beispiel einer erfolgreichen Antwort:
 
 ```json
 {
     "status": "ready",
     "database": "available",
-    "checked_at": "..."
+    "storage": "writable",
+    "checked_at": "2026-08-02T23:13:22+02:00"
 }
 ```
 
-## Tests und Codequalität
+## Qualitätssicherung
 
 Vollständige Prüfung:
 
@@ -261,109 +166,100 @@ Alternativ:
 composer check
 ```
 
-Der Prüfablauf umfasst:
+Der Ablauf umfasst:
 
 1. Validierung von `composer.json`
-2. Laravel Pint im Prüfmodus
-3. Larastan/PHPStan
-4. PHPUnit
-5. Frontend-Produktionsbuild
+2. Frontend-Produktionsbuild
+3. Laravel Pint im Prüfmodus
+4. Larastan/PHPStan
+5. PHPUnit
 
-Einzelne Befehle:
+## Queue-Smoke-Test
 
-```cmd
-test.cmd
-format.cmd
-composer analyse
-npm run build
-```
-
-## Queue prüfen
-
-Während `dev.cmd` läuft:
+Während der lokale Queue-Worker läuft:
 
 ```cmd
 queue-smoke.cmd
 ```
 
-Oder:
-
-```cmd
-php artisan minibib:queue-smoke
-```
-
-Synchron ohne Queue-Worker:
-
-```cmd
-php artisan minibib:queue-smoke --sync
-```
-
-Verarbeitete Smoke-Jobs erzeugen JSON-Dateien unter:
+Verarbeitete Jobs erzeugen JSON-Dateien unter:
 
 ```text
 storage/app/private/health/queue
 ```
 
-## Scheduler prüfen
+## Scheduler-Smoke-Test
 
-Direkter Smoke-Test:
-
-```cmd
-php artisan minibib:scheduler-smoke
-```
-
-Registrierte Aufgaben anzeigen:
+Direkte Ausführung:
 
 ```cmd
-php artisan schedule:list
+artisan.cmd minibib:scheduler-smoke
 ```
 
-Scheduler lokal ausführen:
+Registrierte Aufgaben:
+
+```cmd
+artisan.cmd schedule:list
+```
+
+Lokaler Scheduler:
 
 ```cmd
 scheduler-work.cmd
 ```
 
-Der lokale Smoke-Test läuft jede Minute. In der Produktionsumgebung ist er täglich um `03:05` Uhr registriert.
+## Produktion
+
+Eine sichere Produktionsvorlage liegt in:
+
+```text
+.env.production.example
+```
+
+Versionierte systemd-Vorlagen liegen in:
+
+```text
+deploy/systemd
+```
+
+Die zugehörige Betriebsdokumentation liegt in:
+
+```text
+docs/production/systemd.md
+```
+
+Die Vorlagen verwenden den Linux-Benutzer `minibib`, die Gruppe `www-data` und
+den Projektpfad `/srv/minibib/current`.
 
 ## GitHub Actions
 
-Der Workflow liegt unter:
-
-```text
-.github/workflows/ci.yml
-```
-
-Er wird bei Pushes auf `main` und bei Pull Requests ausgeführt. Die CI richtet PHP, Node.js und PostgreSQL ein, installiert die Abhängigkeiten, migriert die Testdatenbank und führt `composer check` aus.
+Der Workflow liegt unter `.github/workflows/ci.yml` und führt bei Pushes auf
+`main` sowie bei Pull Requests den vollständigen Projektcheck mit PostgreSQL
+aus.
 
 ## Sicherheitsregeln
 
-Folgende Dateien und Verzeichnisse dürfen nicht committed werden:
+Nicht committen:
 
 ```text
 .env
 .env.testing
+.env.production
 .env*.bak
-vendor/
-node_modules/
+vendor
+node_modules
 ```
 
-Vor einem Commit prüfen:
+Produktions-Secrets gehören ausschließlich in die nicht versionierte `.env` auf
+dem Server.
 
-```cmd
-git status
-git check-ignore -v .env
-git check-ignore -v .env.testing
-```
+## Nächste Produktionsschritte
 
-## Nächste Entwicklungsphase
+Phase 9 wird anschließend ergänzt um:
 
-Nach Phase 0 beginnt die fachliche Umsetzung, unter anderem mit:
-
-- Benutzern und privaten beziehungsweise gemeinsamen Bibliotheken
-- Medien und physischen Exemplaren
-- Standorten bis zur Regalbrett-Ebene
-- Listen, Notizen und Ausleihen
-- DNB-/ZDB-Import
-- Barcode-Erfassung
-- Suche, Audit-Log, Export und Backups
+- Nginx und PHP-FPM
+- Installations- und Deployment-Ablauf
+- PostgreSQL- und Storage-Backups
+- Wiederherstellungstest
+- HTTPS- und Server-Härtung
+- Produktionsabnahme der Health-Checks

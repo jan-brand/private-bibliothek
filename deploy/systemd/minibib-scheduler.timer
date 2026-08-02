@@ -1,0 +1,11 @@
+[Unit]
+Description=Run MiniBib Laravel Scheduler every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Persistent=true
+AccuracySec=1s
+Unit=minibib-scheduler.service
+
+[Install]
+WantedBy=timers.target
