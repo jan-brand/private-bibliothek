@@ -228,15 +228,20 @@ Die zugehörige Betriebsdokumentation liegt unter:
 docs/production
 ```
 
-Dort sind systemd, Nginx/PHP-FPM sowie Backup und Wiederherstellung beschrieben.
+Dort sind systemd, Nginx/PHP-FPM, Backup und Wiederherstellung sowie der
+Deployment-Ablauf beschrieben.
 
 Die Vorlagen verwenden den Linux-Benutzer `minibib`, die Gruppe `www-data` und
 den Projektpfad `/srv/minibib/current`.
 
 Tägliche Datenbank- und Storage-Backups werden außerhalb des Webroots unter
 `/var/backups/minibib` abgelegt. Versionierte Vorlagen befinden sich unter
-`deploy/backup` und `deploy/systemd`. Restore-Prüfungen verwenden eine getrennte
-PostgreSQL-Rolle und überschreiben keine vorhandene Prüfdatenbank.
+`deploy/backup` und `deploy/systemd`. Restore-Prüfungen verwenden eine getrennte PostgreSQL-Rolle und überschreiben
+keine vorhandene Prüfdatenbank.
+
+Das versionierte Deployment-Skript liegt unter `deploy/deployment`. Es erstellt
+vor jeder Aktualisierung ein Backup, akzeptiert nur Fast-Forward-Deployments,
+baut den exakten Lockfile-Stand und prüft anschließend beide Health-Endpunkte.
 
 ## GitHub Actions
 
@@ -264,7 +269,7 @@ dem Server.
 
 Phase 9 wird anschließend ergänzt um:
 
-- Installations- und Deployment-Ablauf
+- Ubuntu-Installationsablauf
 - Offsite-Kopie der Backups
 - dokumentierter Wiederherstellungstest auf der Ziel-VM
 - HTTPS-, Firewall- und Server-Härtung
